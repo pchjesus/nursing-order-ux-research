@@ -39,6 +39,15 @@ function validate(fixtures,state){
  state.executions.forEach(e=>{let o=state.orders.find(x=>x.id===e.orderId);assert(o&&o.patientId===e.patientId,'수행의 환자·처방 불일치');if(e.slotId!==undefined)assert(typeof e.slotId==='string'&&o.schedule?.slots.some(s=>s.id===e.slotId),'수행-예정 시점 참조 오류');});
  state.records.forEach(d=>{let o=state.orders.find(x=>x.id===d.orderId);assert(o&&o.patientId===d.patientId,'기록의 환자·처방 불일치');});
  state.links.forEach(l=>{let e=state.executions.find(x=>x.id===l.executionId),d=state.records.find(x=>x.id===l.recordId);assert(e&&d&&e.orderId===d.orderId,'수행-기록 링크 오류');});
+ /* Optional v0.2.6 slot audit fields; older audit records are left untouched. */
+ state.audit.filter(a=>SLOT_AUDIT_ACTIONS.includes(a.action)).forEach(a=>{
+  const order=state.orders.find(o=>o.id===a.orderId);
+  assert(order&&actor(fixtures,a.by)&&order.schedule?.slots.some(s=>s.id===a.slotId),'예정 감사 이력의 처방/수행자/슬롯 참조 오류');
+  assert(typeof a.note==='string'&&a.note.trim().length>=2&&a.note.length<=200,'예정 감사 사유 오류');
+  isoTime(a.at);
+  if(a.action==='slot_postponed'){isoTime(a.oldAt);isoTime(a.newAt);assert(Date.parse(a.newAt)>Date.parse(a.oldAt),'연기 감사 시각 오류');}
+  else assert(SLOT_STATES.includes(a.fromStatus)&&SLOT_STATES.includes(a.toStatus),'예정 상태 감사 이력 오류');
+ });
  return state;
 }
 function search(fixtures,q,category){const norm=s=>String(s||'').toLocaleLowerCase('ko').replace(/\s+/g,'').trim(); const term=norm(q);return fixtures.catalog.filter(x=>{
@@ -79,6 +88,7 @@ function cleanDetails(fixtures,code,value){
 /* Optional v0.2.5 synthetic schedule: immutable planned slots, separate from actual executions. */
 const SCHEDULE_KINDS=['once','interval','conditional'];
 const SLOT_STATES=['planned','held','cancelled'];
+const SLOT_AUDIT_ACTIONS=['slot_held','slot_resumed','slot_cancelled','slot_postponed'];
 function isoTime(value){
  assert(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value,'예정 시각은 유효한 ISO 시각이어야 합니다.');
  return value;
@@ -117,7 +127,7 @@ function validateSchedule(schedule,orderId){
  for(let i=0;i<slots.length;i++){
   const slot=slots[i];
   assert(slot&&slot.id===orderId+'-S'+String(i+1).padStart(3,'0')&&!ids.has(slot.id)&&SLOT_STATES.includes(slot.status),'예정 ID 또는 상태 오류');
-  isoTime(slot.at);ids.add(slot.id);
+  isoTime(slot.at);if(slot.rescheduledAt!==undefined){isoTime(slot.rescheduledAt);assert(Date.parse(slot.rescheduledAt)>Date.parse(slot.at),'연기 시각은 최초 예정 시각 이후여야 합니다.');}ids.add(slot.id);
   if(schedule.kind==='interval'&&i>0)assert(Date.parse(slot.at)-Date.parse(slots[i-1].at)===schedule.everyHours*3600000,'반복 간격과 예정 시점 불일치');
  }
  return true;
@@ -130,7 +140,7 @@ function scheduleOverview(state,order){
   const executionIds=new Set(executions.map(e=>e.id));
   const recordIds=new Set(state.links.filter(l=>executionIds.has(l.executionId)).map(l=>l.recordId));
   const records=state.records.filter(r=>r.orderId===order.id&&recordIds.has(r.id));
-  return {...slot,executions,records};
+  return {...slot,effectiveAt:slot.rescheduledAt||slot.at,executions,records};
  });
  return {kind:order.schedule?.kind||'unspecified',condition:order.schedule?.condition||'',
   planned:!known||conditional?null:slots.length,slots,unassigned:events.filter(e=>!e.slotId).length};
@@ -149,6 +159,40 @@ function confirmDraft(fixtures,state,session,orderId,pin){
  const next=clone(state);const order=next.orders.find(x=>x.id===orderId);assert(order,'처방을 찾을 수 없습니다.');assert(order.status==='draft','임시저장된 처방만 확정할 수 있습니다.');assert(order.orderedBy===session.userId,'처방을 저장한 계정만 이번 데모에서 재인증할 수 있습니다.');
  order.status='confirmed';order.checkedBy=session.userId;order.confirmedAt=stamp();next.audit.push({id:uid('AUD'),orderId,action:'reauth_confirmed',by:session.userId,at:order.confirmedAt});return next;
 }
+
+/* Conservative demo-only transitions: slot IDs and original 'at' timestamps never change. */
+function changeSlot(fixtures,state,session,orderId,slotId,action,reason,pin,newAt=null){
+ ensureSession(fixtures,session);
+ assert(authenticate(fixtures,session.userId,session.shift,pin),'비밀번호가 일치하지 않습니다.');
+ assert(typeof reason==='string'&&reason.trim().length>=2&&reason.trim().length<=200,'변경 사유는 2~200자로 입력해 주세요.');
+ assert(['hold','resume','cancel','postpone'].includes(action),'지원하지 않는 예정 변경 동작입니다.');
+ const order=state.orders.find(o=>o.id===orderId);
+ assert(order&&order.status==='confirmed','확정된 처방의 예정만 모의 변경할 수 있습니다.');
+ const slot=order.schedule?.slots.find(s=>s.id===slotId);
+ assert(slot,'해당 처방의 예정 슬롯이 아닙니다.');
+ assert(!state.executions.some(e=>e.orderId===orderId&&e.slotId===slotId),'수행 사건이 연결된 예정은 변경할 수 없습니다.');
+ const allowed={hold:['planned'],resume:['held'],cancel:['planned','held'],postpone:['planned','held']};
+ assert(allowed[action].includes(slot.status),'현재 예정 상태에서는 해당 변경을 할 수 없습니다.');
+ let at=null;
+ if(action==='postpone'){
+  at=isoTime(newAt);
+  assert(Date.parse(at)>Date.parse(slot.rescheduledAt||slot.at),'새 예정 시각은 현재 예정 시각보다 나중이어야 합니다.');
+ }
+ const next=clone(state),target=next.orders.find(o=>o.id===orderId).schedule.slots.find(s=>s.id===slotId);
+ const was=target.status,previousAt=target.rescheduledAt||target.at;
+ if(action==='hold')target.status='held';
+ if(action==='resume')target.status='planned';
+ if(action==='cancel')target.status='cancelled';
+ if(action==='postpone')target.rescheduledAt=at;
+ const audit={id:uid('AUD'),orderId,slotId,action:({hold:'slot_held',resume:'slot_resumed',cancel:'slot_cancelled',postpone:'slot_postponed'})[action],
+  by:session.userId,at:stamp(),note:reason.trim()};
+ if(action==='postpone'){audit.oldAt=previousAt;audit.newAt=at;}
+ else{audit.fromStatus=was;audit.toStatus=target.status;}
+ next.audit.push(audit);
+ validate(fixtures,next);
+ return {next,slot:target,audit};
+}
+
 function addExecution(fixtures,state,session,orderId,note='',slotId=null){
  ensureSession(fixtures,session); const order=state.orders.find(x=>x.id===orderId);assert(order&&order.status==='confirmed','확정된 처방만 모의 수행 기록을 추가할 수 있습니다.');const slot=slotId?order.schedule?.slots.find(s=>s.id===slotId):null;
  assert(!slotId||slot,'이 처방에 속하지 않는 예정 시점입니다.');assert(!slot||slot.status==='planned','보류·취소된 예정 시점은 연결 수행을 추가할 수 없습니다.');
@@ -183,6 +227,6 @@ function groupPatientOrders(fixtures,state,patientId,options={}){
  }
  return [...groups.values()];
 }
-function summary(state,patientId){const data=forPatient(state,patientId);const plans=data.map(x=>scheduleOverview(state,x.order));return {orders:data.length,plannedSlots:plans.reduce((n,x)=>n+(x.planned??0),0),unknownPlans:plans.filter(x=>x.planned===null).length,confirmed:data.filter(x=>x.order.status==='confirmed').length,drafts:data.filter(x=>x.order.status==='draft').length,executions:data.reduce((n,x)=>n+x.executions.length,0),records:data.reduce((n,x)=>n+x.records.length,0)};}
-return {STORAGE_KEY,makeSeed,validate,search,authenticate,shiftAllowed,createDraft,confirmDraft,addExecution,addRecord,forPatient,groupPatientOrders,summary,buildSchedule,validateSchedule,scheduleOverview,clone};
+function summary(state,patientId){const data=forPatient(state,patientId);const plans=data.map(x=>scheduleOverview(state,x.order));const slots=plans.flatMap(p=>p.slots);return {orders:data.length,plannedSlots:slots.length,heldSlots:slots.filter(s=>s.status==='held').length,cancelledSlots:slots.filter(s=>s.status==='cancelled').length,activeSlots:slots.filter(s=>s.status==='planned').length,unknownPlans:plans.filter(x=>x.planned===null).length,confirmed:data.filter(x=>x.order.status==='confirmed').length,drafts:data.filter(x=>x.order.status==='draft').length,executions:data.reduce((n,x)=>n+x.executions.length,0),records:data.reduce((n,x)=>n+x.records.length,0)};}
+return {STORAGE_KEY,makeSeed,validate,search,authenticate,shiftAllowed,createDraft,confirmDraft,addExecution,addRecord,forPatient,groupPatientOrders,summary,buildSchedule,validateSchedule,scheduleOverview,changeSlot,clone};
 });

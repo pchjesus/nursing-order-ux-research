@@ -1,6 +1,6 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nursing Order UX Lab · v0.2.5</title><link rel="stylesheet" href="styles.css"></head>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nursing Order UX Lab · v0.2.6</title><link rel="stylesheet" href="styles.css"></head>
 <body>
-<header class="top"><div><div class="eyebrow">NURSING ORDER UX LAB <span class="tag">v0.2.5</span></div><h1>간호활동 처방 시뮬레이터</h1><p>가상 환자 · 가상 간호사 · 비임상 교육/UX 테스트</p></div><div class="top-right"><strong id="session-label">로그인 전</strong><button id="logout" class="ghost" disabled>로그아웃</button></div></header>
+<header class="top"><div><div class="eyebrow">NURSING ORDER UX LAB <span class="tag">v0.2.6</span></div><h1>간호활동 처방 시뮬레이터</h1><p>가상 환자 · 가상 간호사 · 비임상 교육/UX 테스트</p></div><div class="top-right"><strong id="session-label">로그인 전</strong><button id="logout" class="ghost" disabled>로그아웃</button></div></header>
 <div class="warning"><strong>실제 nU·EMR이 아닙니다.</strong> 가상 처방코드와 합성 환자를 사용합니다. 비밀번호 재입력은 동일 계정 재인증 시뮬레이션이며, 독립적인 2인 이중확인·실제 보안 인증이 아닙니다. 저장 데이터는 이 브라우저에만 남습니다.</div>
 <main class="shell">
 <aside class="side">
@@ -27,4 +27,13 @@
 <div class="surface"><div class="section-head"><div><h2>처방 · 수행 · 기록</h2><p class="help">개별 처방·수행 사건·기록의 원본 ID를 확인하세요.</p></div><button id="refresh" class="ghost">다시 보기</button></div><div id="summary" class="summary"></div><div class="filters"><label>처방 상태<select id="status-filter"><option value="">전체</option><option value="draft">임시저장</option><option value="confirmed">확정</option><option value="held">보류</option><option value="cancelled">취소</option></select></label><label class="grow">처방명 · 코드 검색<input id="status-query" type="search" placeholder="현재 환자의 처방 검색"></label><label class="group-toggle" for="group-by-code"><input type="checkbox" id="group-by-code"><span>같은 가상코드 묶어 보기</span></label></div><p class="help group-help">그룹은 현재 환자·필터 결과를 화면에서만 요약합니다. 코드가 같아도 임상 조건이 동일하다는 뜻은 아닙니다. 개별 처방과 기록은 그대로 보존됩니다.</p><div id="order-list"></div></div></section>
 <div id="flash" class="flash" role="status" aria-live="polite"></div></section></main>
 <dialog id="confirm-modal" aria-labelledby="confirm-title"><form id="confirm-form"><h2 id="confirm-title">가상 처방 확정 전 재인증</h2><p id="confirm-summary"></p><p class="help">현재 로그인한 계정의 데모 비밀번호를 다시 입력하세요. 독립된 2차 확인자가 아닙니다.</p><label for="confirm-pin">현재 로그인 계정 비밀번호</label><input id="confirm-pin" type="password" required autocomplete="off"><p id="confirm-error" class="error" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel-confirm" class="ghost">돌아가기</button><button class="primary" type="submit">재인증 후 가상 확정</button></div></form></dialog>
+<dialog id="slot-change-modal" aria-labelledby="slot-change-title"><form id="slot-change-form">
+ <h2 id="slot-change-title">모의 예정 변경</h2><p id="slot-change-summary" class="meta"></p>
+ <p class="help">이 작업은 합성 예정의 시뮬레이션입니다. 실제 처방 취소·연기·법적 전자서명과 다릅니다. 원래 시각, 수행·기록 ID 및 감사 이력을 보존합니다.</p>
+ <label for="slot-change-reason">변경 사유 (필수, 2~200자)</label><textarea id="slot-change-reason" minlength="2" maxlength="200" rows="2" required></textarea>
+ <label id="slot-change-time-field" for="slot-change-time" hidden>새 예정 시각 (현재 브라우저 현지 시간)<input id="slot-change-time" type="datetime-local" step="60"></label>
+ <label for="slot-change-pin">로그인된 가상 계정의 데모 비밀번호</label><input id="slot-change-pin" type="password" required autocomplete="off">
+ <p id="slot-change-error" class="error" role="alert"></p>
+ <div class="dialog-actions"><button type="button" id="cancel-slot-change" class="ghost">돌아가기</button><button type="submit" class="primary">변경 사유와 이력 저장</button></div>
+ </form></dialog>
 <script src="fixtures.js"></script><script src="activity-details.js"></script><script src="case-context.js"></script><script src="domain.js"></script><script src="order-sheet-model.js"></script><script src="app.js"></script></body></html>

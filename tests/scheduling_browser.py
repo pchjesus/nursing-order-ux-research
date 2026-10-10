@@ -1,4 +1,4 @@
-"""v0.2.5 synthetic planned slots and separate execution/record browser regression."""
+"""v0.2.6 synthetic planned slots and separate execution/record browser regression."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
@@ -23,7 +23,7 @@ with sync_playwright() as pw:
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     init(page)
-    assert 'v0.2.5' in page.title()
+    assert 'v0.2.6' in page.title()
     page.locator('#tab-status').click()
     assert '예정: 미지정' in page.locator('#order-list').inner_text()
     page.locator('#tab-search').click()
@@ -41,7 +41,7 @@ with sync_playwright() as pw:
     page.locator('#save-draft').click()
     order=page.locator('#order-list .order-card').first
     assert order.locator('.schedule-slot').count()==3
-    assert '예정: 주기 반복 · 3회' in order.inner_text()
+    assert '예정 슬롯 3개' in order.inner_text()
     assert '예정 미정 처방' in page.locator('#summary').inner_text()
     order.locator('[data-confirm]').click()
     page.locator('#confirm-pin').fill('2468')
@@ -64,7 +64,7 @@ with sync_playwright() as pw:
     assert page.locator('#order-list .order-card').count()==before_count
     page.locator('#group-by-code').uncheck()
     page.locator('[data-patient="P-B102"]').click()
-    assert '예정: 주기 반복 · 3회' not in page.locator('#order-list').inner_text()
+    assert '예정 슬롯 3개' not in page.locator('#order-list').inner_text()
     page.locator('#tab-search').click()
     page.locator('[data-item="SIM-ACT-0001"]').click()
     page.locator('#schedule-kind').select_option('conditional')
@@ -76,7 +76,7 @@ with sync_playwright() as pw:
     page2.on('pageerror',lambda e:errors.append(str(e)))
     init(page2,stored)
     page2.locator('#tab-status').click()
-    assert '예정: 주기 반복 · 3회' in page2.locator('#order-list').inner_text()
+    assert '예정 슬롯 3개' in page2.locator('#order-list').inner_text()
     assert '연결 수행 1건 · 연결 기록 1건' in page2.locator('#order-list').inner_text()
     page2.locator('[data-patient="P-B102"]').click()
     assert '조건부 · 예정 횟수 미정' in page2.locator('#order-list').inner_text()

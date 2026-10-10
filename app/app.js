@@ -7,7 +7,7 @@ const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 const fmt=value=>value?new Date(value).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 const label=id=>F.users.find(x=>x.id===id)?.name||id||'미확인';
 const status={draft:'임시저장',confirmed:'확정',held:'보류',cancelled:'취소'};
-let state,session=null,patientId=F.patients[0].id,selectedCode=null,tab='search',confirmId=null,lastFormCode=null;
+let state,session=null,patientId=F.patients[0].id,selectedCode=null,tab='search',confirmId=null,lastFormCode=null,slotChoice=null;
 function notice(text,error=false){el('flash').textContent=text;el('flash').className=error?'flash error':'flash';}
 function load(){try{const raw=localStorage.getItem(D.STORAGE_KEY);if(raw){state=D.validate(F,JSON.parse(raw));return;}state=D.makeSeed(F);D.validate(F,state);persist();}catch(e){state=null;notice('저장 데이터 문제가 있어 자동 초기화하지 않았습니다: '+e.message,true);}}
 function persist(){D.validate(F,state);localStorage.setItem(D.STORAGE_KEY,JSON.stringify(state));}
@@ -89,19 +89,47 @@ function selectedSchedule(){
  if(!Number.isFinite(date.getTime()))throw Error('예정 시각을 확인해 주세요.');
  return {kind,startAt:date.toISOString(),...(kind==='interval'?{everyHours:Number(el('schedule-every').value),count:Number(el('schedule-count').value)}:{})};
 }
+
+const SLOT_ACTION_LABEL={hold:'보류',resume:'재개',cancel:'취소',postpone:'연기'};
 function scheduleHTML(order){
  const p=D.scheduleOverview(state,order);
  if(p.kind==='unspecified')return '<div class="schedule-summary">예정: 미지정 · 이전 처방의 예정 횟수를 추정하지 않습니다.</div>';
  if(p.kind==='conditional')return `<div class="schedule-summary">조건부 · 예정 횟수 미정 · 조건: ${escapeHTML(p.condition)}</div>`;
- const text=p.kind==='once'?'일회성':'주기 반복';
- return `<div class="schedule-summary">예정: ${text} · ${p.planned}회${p.kind==='interval'?' · '+order.schedule.everyHours+'시간 간격':''}</div>
- <div class="schedule-slots" aria-label="개별 예정 시점">${p.slots.map(s=>`<div class="schedule-slot"><span class="code">${escapeHTML(s.id)}</span><span>예정 ${fmt(s.at)} · ${s.status==='planned'?'예정':s.status==='held'?'보류':'취소'}</span><span>연결 수행 ${s.executions.length}건 · 연결 기록 ${s.records.length}건</span>${order.status==='confirmed'&&s.status==='planned'? `<button data-execute="${escapeHTML(order.id)}" data-slot="${escapeHTML(s.id)}">이 예정에 모의 수행 연결</button>`:''}</div>`).join('')}</div>
- ${p.unassigned? `<div class="help">예정과 연결되지 않은 수행 ${p.unassigned}건 · 자동 배정하지 않음</div>`:''}`;
+ const title=p.kind==='once'?'일회성':'주기 반복';
+ const available=p.slots.filter(s=>s.status==='planned').length,held=p.slots.filter(s=>s.status==='held').length,cancelled=p.slots.filter(s=>s.status==='cancelled').length;
+ const slotHtml=p.slots.map(s=>{
+  const hasExecution=s.executions.length>0;
+  const actions=order.status==='confirmed'&&!hasExecution?(
+   s.status==='planned'?['hold','postpone','cancel']:s.status==='held'?['resume','postpone','cancel']:[]
+  ):[];
+  const original=s.rescheduledAt?`<span>최초 예정 ${fmt(s.at)}</span><span>연기된 예정 ${fmt(s.effectiveAt)}</span>`:`<span>예정 ${fmt(s.at)}</span>`;
+  return `<div class="schedule-slot" data-slot-row="${escapeHTML(s.id)}">
+   <span class="code">${escapeHTML(s.id)}</span>${original}<b>${s.status==='planned'?'예정':s.status==='held'?'보류':'취소'}</b>
+   <span>연결 모의 수행 ${s.executions.length}건 · 연결 기록 ${s.records.length}건</span>
+   ${order.status==='confirmed'&&s.status==='planned'?`<button data-execute="${escapeHTML(order.id)}" data-slot="${escapeHTML(s.id)}">이 예정에 모의 수행 연결</button>`:''}
+   ${actions.length?`<span class="slot-actions">${actions.map(action=>`<button data-slot-change="${action}" data-slot-id="${escapeHTML(s.id)}" data-order-id="${escapeHTML(order.id)}" type="button">${SLOT_ACTION_LABEL[action]}</button>`).join('')}</span>`:''}
+   </div>`;
+ }).join('');
+ return `<div class="schedule-summary">예정 슬롯 ${p.planned}개 (진행 가능 ${available} · 보류 ${held} · 취소 ${cancelled}) · ${title}${p.kind==='interval'?' · 최초 '+order.schedule.everyHours+'시간 간격':''} · 모의 상태이며 누락/완료 판정 아님</div>
+ <div class="schedule-slots" aria-label="개별 예정 시점">${slotHtml}</div>
+ ${p.unassigned?`<div class="help">예정과 연결되지 않은 수행 ${p.unassigned}건 · 자동 배정하지 않음</div>`:''}`;
+}
+function openSlotChange(orderId,slotId,action){
+ logged();
+ const order=state.orders.find(o=>o.id===orderId&&o.patientId===patientId);
+ const slot=order?.schedule?.slots.find(s=>s.id===slotId);
+ if(!slot||order.status!=='confirmed'||!SLOT_ACTION_LABEL[action])throw Error('현재 환자의 변경 가능한 예정이 아닙니다.');
+ slotChoice={orderId,slotId,action,patientId};
+ el('slot-change-title').textContent='모의 예정 '+SLOT_ACTION_LABEL[action];
+ el('slot-change-summary').textContent=orderId+' / '+slotId+' · 현재 상태 '+slot.status+' · 최초 '+fmt(slot.at);
+ el('slot-change-reason').value='';el('slot-change-pin').value='';el('slot-change-error').textContent='';
+ el('slot-change-time-field').hidden=action!=='postpone';el('slot-change-time').value='';
+ el('slot-change-modal').showModal();el('slot-change-reason').focus();
 }
 
 function renderOrders(){
  const s=D.summary(state,patientId);
- el('summary').innerHTML=[['개별 처방',s.orders],['확정 처방',s.confirmed],['임시저장',s.drafts],['예정 시점',s.plannedSlots],['예정 미정 처방',s.unknownPlans],['실제 수행 사건',s.executions],['기록 건수',s.records]].map(([name,n])=>`<div class="metric"><strong>${n}</strong><span>${name}</span></div>`).join('');
+ el('summary').innerHTML=[['개별 처방',s.orders],['확정 처방',s.confirmed],['임시저장',s.drafts],['전체 예정 슬롯',s.plannedSlots],['진행 가능 슬롯',s.activeSlots],['보류 슬롯',s.heldSlots],['취소 슬롯',s.cancelledSlots],['예정 미정 처방',s.unknownPlans],['모의 수행 사건',s.executions],['기록 건수',s.records]].map(([name,n])=>`<div class="metric"><strong>${n}</strong><span>${name}</span></div>`).join('');
  const container=el('order-list');
  const openedGroups=new Set([...container.querySelectorAll('details.order-group[open]')].map(e=>e.dataset.group));
  const openedOrders=new Set([...container.querySelectorAll('details.order-history[open]')].map(e=>e.dataset.order));
@@ -117,17 +145,18 @@ function groupHTML(group){
  const entry=F.catalog.find(c=>c.code===group.code);
  const planCounts=group.items.map(x=>D.scheduleOverview(state,x.order));
  const planned=planCounts.reduce((n,x)=>n+(x.planned??0),0),unknown=planCounts.filter(x=>x.planned===null).length;
+ const held=planCounts.flatMap(x=>x.slots).filter(x=>x.status==='held').length,cancelled=planCounts.flatMap(x=>x.slots).filter(x=>x.status==='cancelled').length;
  const statuses=Object.entries(group.statusCounts).map(([key,count])=>`${status[key]||key} ${count}건`).join(' · ');
- return `<details class="order-group" data-group="${escapeHTML(group.patientId+'|'+group.code)}"><summary><span class="group-head"><span class="group-title">${escapeHTML(entry?.name||group.code)} <small>${escapeHTML(group.code)}</small></span><span class="group-counts">개별 처방 <b>${group.items.length}</b>건 · 예정 <b>${planned}</b>회${unknown?` (미정 ${unknown}건)`:''} · 수행 <b>${group.executions}</b>건 · 기록 <b>${group.records}</b>건</span></span><span class="group-status">${escapeHTML(statuses)} · 펼쳐서 개별 처방 확인</span></summary><p class="help">같은 코드별 조회용 묶음이며 부위·방법·빈도 등 임상 조건의 동등성은 확인하지 않았습니다.</p>${group.items.map(orderHTML).join('')}</details>`;
+ return `<details class="order-group" data-group="${escapeHTML(group.patientId+'|'+group.code)}"><summary><span class="group-head"><span class="group-title">${escapeHTML(entry?.name||group.code)} <small>${escapeHTML(group.code)}</small></span><span class="group-counts">개별 처방 <b>${group.items.length}</b>건 · 예정 <b>${planned}</b>회${unknown?` (미정 ${unknown}건)`:''} · 보류 슬롯 <b>${held}</b> · 취소 슬롯 <b>${cancelled}</b> · 수행 <b>${group.executions}</b>건 · 기록 <b>${group.records}</b>건</span></span><span class="group-status">${escapeHTML(statuses)} · 펼쳐서 개별 처방 확인</span></summary><p class="help">같은 코드별 조회용 묶음이며 부위·방법·빈도 등 임상 조건의 동등성은 확인하지 않았습니다.</p>${group.items.map(orderHTML).join('')}</details>`;
 }
-function orderHTML(x){const o=x.order,it=F.catalog.find(c=>c.code===o.code);const confirmed=o.status==='confirmed';const events=x.executions.map(e=>{const linked=state.links.filter(l=>l.executionId===e.id).map(l=>x.records.find(r=>r.id===l.recordId)).filter(Boolean);return `<div class="event"><b>수행 ${escapeHTML(e.id)}</b> · ${fmt(e.at)} · ${escapeHTML(label(e.by))}${e.slotId?` · 예정 연결 ${escapeHTML(e.slotId)}`:' · 예정 미연결'}<small>${escapeHTML(e.note||'메모 없음')}</small>${linked.map(d=>`<div class="event"><b>기록 ${escapeHTML(d.id)}</b> · ${fmt(d.at)} · ${escapeHTML(label(d.by))}<small>${escapeHTML(d.note)}</small></div>`).join('')||'<small>연결 기록 없음(누락 판정 아님)</small>'}${confirmed?`<div class="record-box"><input data-note-for="${e.id}" aria-label="${e.id} 기록 내용" maxlength="500" placeholder="수행에 연결할 가상 기록 작성"><button data-record="${e.id}">모의 기록</button></div>`:''}</div>`}).join('');const unmatched=x.records.filter(d=>!state.links.some(l=>l.recordId===d.id));return `<article class="order-card"><div class="order-top"><div><div class="order-title">${escapeHTML(it?.name||o.code)}</div><div class="code">${o.code} · ${escapeHTML(o.id)}</div></div><span class="badge ${o.status}">${status[o.status]||o.status}</span></div><div class="meta">처방자: ${escapeHTML(label(o.orderedBy))} / ${fmt(o.createdAt)}</div><div class="meta">확인자(재인증): ${escapeHTML(o.checkedBy?label(o.checkedBy):'미확인')} / ${fmt(o.confirmedAt)}</div><div class="detail-preview">${detailHTML(o.details)}</div>${scheduleHTML(o)}<div class="statsline"><span>수행 <b>${x.executions.length}</b>건</span><span>기록 <b>${x.records.length}</b>건</span><span>근무조 ${escapeHTML(o.shift||'미확인')}</span></div><div class="order-actions">${o.status==='draft'?`<button class="primary" data-confirm="${o.id}">재인증 후 확정</button>`:''}${confirmed?`<button data-execute="${o.id}">모의 수행 추가</button>`:''}<button data-view="${o.id}">상세 이력 펼치기</button></div><details class="order-history" data-order="${escapeHTML(o.id)}" id="details-${o.id}"><summary>수행·기록·감사 이력</summary><div class="meta">처방 메모: ${escapeHTML(o.note||'없음')}</div><div class="detail-record">${detailHTML(o.details)}</div>${events||'<p class="help">수행 이력이 없습니다.</p>'}${unmatched.length?`<p class="help">연결되지 않은 기록 ${unmatched.length}건(개별 확인 필요)</p>`:''}<div class="meta">감사 이벤트</div>${x.audit.map(a=>`<div class="event">${escapeHTML(a.action)} · ${fmt(a.at)} · ${escapeHTML(label(a.by))}</div>`).join('')}</details></article>`;}
+function orderHTML(x){const o=x.order,it=F.catalog.find(c=>c.code===o.code);const confirmed=o.status==='confirmed';const events=x.executions.map(e=>{const linked=state.links.filter(l=>l.executionId===e.id).map(l=>x.records.find(r=>r.id===l.recordId)).filter(Boolean);return `<div class="event"><b>수행 ${escapeHTML(e.id)}</b> · ${fmt(e.at)} · ${escapeHTML(label(e.by))}${e.slotId?` · 예정 연결 ${escapeHTML(e.slotId)}`:' · 예정 미연결'}<small>${escapeHTML(e.note||'메모 없음')}</small>${linked.map(d=>`<div class="event"><b>기록 ${escapeHTML(d.id)}</b> · ${fmt(d.at)} · ${escapeHTML(label(d.by))}<small>${escapeHTML(d.note)}</small></div>`).join('')||'<small>연결 기록 없음(누락 판정 아님)</small>'}${confirmed?`<div class="record-box"><input data-note-for="${e.id}" aria-label="${e.id} 기록 내용" maxlength="500" placeholder="수행에 연결할 가상 기록 작성"><button data-record="${e.id}">모의 기록</button></div>`:''}</div>`}).join('');const unmatched=x.records.filter(d=>!state.links.some(l=>l.recordId===d.id));return `<article class="order-card"><div class="order-top"><div><div class="order-title">${escapeHTML(it?.name||o.code)}</div><div class="code">${o.code} · ${escapeHTML(o.id)}</div></div><span class="badge ${o.status}">${status[o.status]||o.status}</span></div><div class="meta">처방자: ${escapeHTML(label(o.orderedBy))} / ${fmt(o.createdAt)}</div><div class="meta">확인자(재인증): ${escapeHTML(o.checkedBy?label(o.checkedBy):'미확인')} / ${fmt(o.confirmedAt)}</div><div class="detail-preview">${detailHTML(o.details)}</div>${scheduleHTML(o)}<div class="statsline"><span>수행 <b>${x.executions.length}</b>건</span><span>기록 <b>${x.records.length}</b>건</span><span>근무조 ${escapeHTML(o.shift||'미확인')}</span></div><div class="order-actions">${o.status==='draft'?`<button class="primary" data-confirm="${o.id}">재인증 후 확정</button>`:''}${confirmed?`<button data-execute="${o.id}">모의 수행 추가</button>`:''}<button data-view="${o.id}">상세 이력 펼치기</button></div><details class="order-history" data-order="${escapeHTML(o.id)}" id="details-${o.id}"><summary>수행·기록·감사 이력</summary><div class="meta">처방 메모: ${escapeHTML(o.note||'없음')}</div><div class="detail-record">${detailHTML(o.details)}</div>${events||'<p class="help">수행 이력이 없습니다.</p>'}${unmatched.length?`<p class="help">연결되지 않은 기록 ${unmatched.length}건(개별 확인 필요)</p>`:''}<div class="meta">감사 이벤트</div>${x.audit.map(a=>`<div class="event">${escapeHTML(a.action)} · ${fmt(a.at)} · ${escapeHTML(label(a.by))}${a.slotId?` · 슬롯 ${escapeHTML(a.slotId)}`:''}${a.note?`<small>사유: ${escapeHTML(a.note)}</small>`:''}${a.oldAt&&a.newAt?`<small>이전 예정 ${fmt(a.oldAt)} → 변경 예정 ${fmt(a.newAt)}</small>`:''}</div>`).join('')}</details></article>`;}
 function render(){renderLogin();renderPatients();renderTabs();if(state){renderCatalog();renderOrders();renderCaseSheet();}}
 function showConfirm(orderId){logged();const o=state.orders.find(x=>x.id===orderId);if(!o||o.status!=='draft')throw Error('임시저장 상태가 아닙니다.');if(o.orderedBy!==session.userId)throw Error('현재 데모에서는 저장한 계정에서만 재인증합니다.');confirmId=orderId;el('confirm-summary').textContent=`${F.catalog.find(x=>x.code===o.code)?.name} · ${o.patientId} · 처방자 ${label(o.orderedBy)}`;el('confirm-error').textContent='';el('confirm-pin').value='';el('confirm-modal').showModal();el('confirm-pin').focus();}
 function init(){const cats=[...new Set(F.catalog.map(x=>x.category))];el('category').innerHTML='<option value="">전체 간호활동</option>'+cats.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');renderAccountOptions();load();if(state)render();
- el('shift').addEventListener('change',()=>{session=null;renderAccountOptions();renderLogin();notice('근무조가 바뀌어 로그아웃되었습니다.');});
+ el('shift').addEventListener('change',()=>{session=null;slotChoice=null;if(el('slot-change-modal').open)el('slot-change-modal').close();renderAccountOptions();renderLogin();notice('근무조가 바뀌어 로그아웃되었습니다.');});
  el('login').addEventListener('click',()=>guarded(()=>{const userId=el('account').value,shift=el('shift').value,pin=el('password').value;if(!D.authenticate(F,userId,shift,pin))throw Error('계정·근무조·비밀번호가 일치하지 않습니다.');session={userId,shift};el('password').value='';notice('로그인했습니다. 이후 저장·확인은 이 가상 간호사 계정으로 기록됩니다.');renderLogin();}));
- el('logout').addEventListener('click',()=>{session=null;notice('로그아웃했습니다.');renderLogin();});
- el('patient-list').addEventListener('click',e=>{const btn=e.target.closest('[data-patient]');if(!btn)return;patientId=btn.dataset.patient;selectedCode=null;lastFormCode=null;el('order-note').value='';clearScheduleForm();notice('가상 환자를 변경했습니다. 처방·이력은 환자별로 분리됩니다.');render();});
+ el('logout').addEventListener('click',()=>{session=null;slotChoice=null;if(el('slot-change-modal').open)el('slot-change-modal').close();notice('로그아웃했습니다.');renderLogin();});
+ el('patient-list').addEventListener('click',e=>{const btn=e.target.closest('[data-patient]');if(!btn)return;patientId=btn.dataset.patient;slotChoice=null;if(el('slot-change-modal').open)el('slot-change-modal').close();selectedCode=null;lastFormCode=null;el('order-note').value='';clearScheduleForm();notice('가상 환자를 변경했습니다. 처방·이력은 환자별로 분리됩니다.');render();});
  for(const id of ['search','status'])el('tab-'+id).addEventListener('click',()=>{tab=id;render();});
  for(const id of ['query','category'])el(id).addEventListener(id==='query'?'input':'change',renderCatalog);
  el('clear-search').addEventListener('click',()=>{el('query').value='';el('category').value='';renderCatalog();});
@@ -136,10 +165,19 @@ function init(){const cats=[...new Set(F.catalog.map(x=>x.category))];el('catego
  el('detail-product').addEventListener('change',updateProductHelp);el('detail-method').addEventListener('change',()=>refreshProductChoices());el('detail-product-category').addEventListener('change',()=>refreshProductChoices());
  el('save-draft').addEventListener('click',()=>guarded(()=>{logged();if(!selectedCode)throw Error('먼저 간호활동을 선택하세요.');const res=D.createDraft(F,state,session,patientId,selectedCode,el('order-note').value,selectedDetails(),selectedSchedule());withChange(res,'임시저장했습니다. ' + res.order.id+' · 확정은 현재 계정 재인증이 필요합니다.');el('order-note').value='';clearScheduleForm();tab='status';render();}));
  el('refresh').addEventListener('click',renderOrders);for(const id of ['status-filter','status-query'])el(id).addEventListener(id==='status-query'?'input':'change',renderOrders);el('group-by-code').addEventListener('change',renderOrders);
- el('order-list').addEventListener('click',e=>guarded(()=>{const target=e.target.closest('button');if(!target)return;if(target.dataset.view){const detail=el('details-'+target.dataset.view);detail.open=!detail.open;return;}if(target.dataset.confirm){showConfirm(target.dataset.confirm);return;}if(target.dataset.execute){logged();const res=D.addExecution(F,state,session,target.dataset.execute,'사용자가 추가한 모의 수행',target.dataset.slot||null);withChange(res,'모의 수행 사건을 추가했습니다. 실제 수행 기록이 아닙니다.');return;}if(target.dataset.record){logged();const id=target.dataset.record;const input=el('order-list').querySelector(`[data-note-for="${id}"]`);const next=D.addRecord(F,state,session,id,input?.value);withChange(next,'연결 기록을 추가했습니다.');}}));
+ el('order-list').addEventListener('click',e=>guarded(()=>{const target=e.target.closest('button');if(!target)return;if(target.dataset.view){const detail=el('details-'+target.dataset.view);detail.open=!detail.open;return;}if(target.dataset.confirm){showConfirm(target.dataset.confirm);return;}if(target.dataset.slotChange){openSlotChange(target.dataset.orderId,target.dataset.slotId,target.dataset.slotChange);return;}if(target.dataset.execute){logged();const res=D.addExecution(F,state,session,target.dataset.execute,'사용자가 추가한 모의 수행',target.dataset.slot||null);withChange(res,'모의 수행 사건을 추가했습니다. 실제 수행 기록이 아닙니다.');return;}if(target.dataset.record){logged();const id=target.dataset.record;const input=el('order-list').querySelector(`[data-note-for="${id}"]`);const next=D.addRecord(F,state,session,id,input?.value);withChange(next,'연결 기록을 추가했습니다.');}}));
  el('confirm-form').addEventListener('submit',e=>{e.preventDefault();try{logged();const next=D.confirmDraft(F,state,session,confirmId,el('confirm-pin').value);el('confirm-modal').close();confirmId=null;el('confirm-pin').value='';withChange(next,'동일 계정 재인증을 마쳐 가상 처방을 확정했습니다.');}catch(err){el('confirm-error').textContent=err.message;el('confirm-pin').value='';}});
  el('cancel-confirm').addEventListener('click',()=>{el('confirm-modal').close();confirmId=null;});
- el('reset').addEventListener('click',()=>{if(!window.confirm('이 브라우저에 저장한 모든 모의 처방·수행·기록을 지우고 초기 합성 자료로 되돌릴까요?'))return;state=D.makeSeed(F);persist();session=null;selectedCode=null;tab='search';clearScheduleForm();render();notice('테스트 데이터를 초기화했습니다. 변경 이력은 되돌릴 수 없습니다.');});
+ el('slot-change-form').addEventListener('submit',e=>{e.preventDefault();try{
+  logged();if(!slotChoice||slotChoice.patientId!==patientId)throw Error('환자가 변경되었습니다. 다시 선택해 주세요.');
+  const {orderId,slotId,action}=slotChoice;
+  let time=null;if(action==='postpone'){const raw=el('slot-change-time').value;if(!raw)throw Error('변경 예정 시각을 입력해 주세요.');const d=new Date(raw);if(!Number.isFinite(d.getTime()))throw Error('유효한 시각을 입력해 주세요.');time=d.toISOString();}
+  const result=D.changeSlot(F,state,session,orderId,slotId,action,el('slot-change-reason').value,el('slot-change-pin').value,time);
+  el('slot-change-modal').close();slotChoice=null;withChange(result,'모의 예정 '+SLOT_ACTION_LABEL[action]+' 변경을 감사 이력과 함께 저장했습니다.');
+ }catch(err){el('slot-change-error').textContent=err.message;el('slot-change-pin').value='';}});
+ el('cancel-slot-change').addEventListener('click',()=>{el('slot-change-modal').close();slotChoice=null;});
+ el('slot-change-modal').addEventListener('close',()=>{slotChoice=null;});
+ el('reset').addEventListener('click',()=>{if(!window.confirm('이 브라우저에 저장한 모든 모의 처방·수행·기록을 지우고 초기 합성 자료로 되돌릴까요?'))return;state=D.makeSeed(F);persist();session=null;slotChoice=null;if(el('slot-change-modal').open)el('slot-change-modal').close();selectedCode=null;tab='search';clearScheduleForm();render();notice('테스트 데이터를 초기화했습니다. 변경 이력은 되돌릴 수 없습니다.');});
 }
 window.addEventListener('DOMContentLoaded',init);
 })();

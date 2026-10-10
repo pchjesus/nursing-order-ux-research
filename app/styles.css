@@ -71,3 +71,13 @@
 #schedule-start-field,#schedule-condition-field{margin-top:9px}
 #schedule-interval-fields{margin-top:9px}
 @media(max-width:690px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-slot button{margin-left:0}}
+
+/* v0.2.6: explicit slot-level demo actions and readable non-destructive history. */
+.slot-actions{display:inline-flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.slot-actions button{border-color:#adc7d8;background:#f7fbfd;color:#315f79}
+.slot-actions button[data-slot-change="cancel"]{color:#934d4d;border-color:#dec0c0}
+.schedule-slot b{font-size:11px;color:#375e77}
+.schedule-slot:has(.slot-actions) {background:#fcfdff}
+#slot-change-modal form{gap:10px}
+#slot-change-modal{max-width:470px}
+@media(max-width:690px){.slot-actions{margin-left:0}}

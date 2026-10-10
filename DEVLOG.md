@@ -239,3 +239,13 @@
 - 코드 커밋 `f5eac4c2ec2ce747f28cd39efa4dc8c46cb6fb2a`, 실행 https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38031140909
 - Node **86/86 통과**, Chromium DOM 주입형 **6/6 통과**. 실제 병원·사용자 환경 테스트와 구별.
 - 초기 두 브라우저 실패는 신규 테스트의 기대 문구와 그룹 표시 방식에 대한 가정이 잘못된 것으로, 테스트 단언을 수정했으며 최종 전체 검사 통과. 기존 기능 또는 저장 스키마/개별 이력에 대한 제품코드·의료 규칙 변경은 하지 않음.
+
+## 2026-10-10 — v0.2.6 합성 슬롯 상태 및 감사 이력
+- **시작점:** 최신 GitHub private/main `a2ffa8f2824f87351f0a0b2f4a066a4af6faf66a` (기존 94 Node/6 Chromium; 임상 타당성 재평가/연구 파일럿 추가된 상태).
+- `app/domain.js`: 확정된 가상 처방의 미수행 연결 슬롯에 대해 보류·재개·취소·연기, 상태 전이 검증/이유·PIN 재인증, 변경 audit 추가. 슬롯 ID와 기존 `at` 불변, `rescheduledAt`는 선택형.
+- `app/app.js`, `app/index.html`, `app/styles.css`: 개별 예정 행의 상태별 버튼, 모의 재인증/사유 대화상자, 원래·변경 시각/감사 이력 가독성, 환자 변경/로그아웃 시 대화상자 닫기.
+- `app/order-sheet-model.js`: 예정 슬롯의 보류·취소/연기 여부를 처방지에 읽기 전용으로 표기. 전체 처방 상태와 기록 정책은 변경하지 않음.
+- 상태 변경 단위검사/브라우저 시나리오 신규. 이전 검사의 버전/문구 고정 기대값만 현재 UI에 맞춰 수정.
+- 저장 `schema:2`·키 `nursing-order-demo-v02`, ACT/FOLLOW/MAT, 315 후보/ACT 42/환자 4/시드 16/제품 18 원본, 이전 처방·수행·기록/링크/audit 및 PRN/MICU 저장소 불변.
+- **중요:** 실제 병원 업무 검증 Gate 0이 우선. v0.2.6 상태 전이는 오직 합성 데이터 기능 시험이고, 현재 기관의 간호처방 변경 권한을 재현하지 않음.
+- 설계: `docs/SLOT_STATUS_v0.2.6.md`; 검사: `docs/TEST_REPORT_v0.2.6.md`.
