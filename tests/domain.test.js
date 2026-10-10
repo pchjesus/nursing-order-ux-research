@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+const raw=fs.readFileSync(require('node:path').join(__dirname,'../app/fixtures.js'),'utf8');const sandbox={globalThis:{}};vm.runInNewContext(raw,sandbox);const F=JSON.parse(JSON.stringify(sandbox.globalThis.DEMO_FIXTURES));const D=require('../app/domain.js');
+let tests=0;function test(name,fn){fn();tests++;console.log('PASS',name)}
+let s=D.makeSeed(F);
+test('exactly four fictitious patients, 38 ACT, 16 original orders',()=>{assert.equal(F.patients.length,4);assert.equal(F.catalog.length,38);assert.equal(s.orders.length,16);assert.equal(new Set(F.catalog.map(x=>x.code)).size,38);assert.ok(F.catalog.every(x=>x.code.startsWith('SIM-ACT-')));D.validate(F,s);});
+test('all four patients have distinct order sets',()=>{const ids=F.patients.map(p=>p.id);assert.equal(new Set(ids).size,4);for(const id of ids){assert.ok(D.forPatient(s,id).length>=3)};const all=D.forPatient(s,ids[0]);assert.ok(all.every(x=>x.order.patientId===ids[0]));});
+test('query and clinical category',()=>{assert.ok(D.search(F,'드레싱','').length>=4);assert.ok(D.search(F,'SIM-ACT-0053','').length===1);assert.ok(D.search(F,'구강 인두 흡인','').length===1);const category=F.catalog[0].category;assert.ok(D.search(F,'',category).every(x=>x.category===category));});
+test('login and shift binding',()=>{assert.equal(D.authenticate(F,'N-D01','D','2468'),true);assert.equal(D.authenticate(F,'N-D01','E','2468'),false);assert.equal(D.authenticate(F,'N-D01','D','wrong'),false);});
+const session={userId:'N-D01',shift:'D'};
+test('create draft does not prematurely confirm and retains author',()=>{const before=D.summary(s,'P-A101');const out=D.createDraft(F,s,session,'P-A101','SIM-ACT-0053','테스트');assert.equal(out.order.status,'draft');assert.equal(out.order.orderedBy,'N-D01');assert.equal(out.order.checkedBy,null);assert.equal(D.summary(s,'P-A101').drafts,before.drafts);s=out.next;assert.equal(D.summary(s,'P-A101').drafts,before.drafts+1);});
+const id=s.orders.at(-1).id;
+test('wrong PIN blocks final confirmation; no mutation',()=>{const previous=JSON.stringify(s);assert.throws(()=>D.confirmDraft(F,s,session,id,'0000'),/비밀번호/);assert.equal(JSON.stringify(s),previous);});
+test('wrong nurse cannot confirm author draft',()=>{assert.throws(()=>D.confirmDraft(F,s,{userId:'N-D02',shift:'D'},id,'1357'),/저장한 계정/);});
+test('correct reauthentication saves independent author and checker fields',()=>{s=D.confirmDraft(F,s,session,id,'2468');const o=s.orders.find(x=>x.id===id);assert.equal(o.status,'confirmed');assert.equal(o.orderedBy,'N-D01');assert.equal(o.checkedBy,'N-D01');assert.ok(o.confirmedAt);assert.ok(s.audit.some(x=>x.orderId===id&&x.action==='reauth_confirmed'));});
+test('no confirmation replay',()=>{assert.throws(()=>D.confirmDraft(F,s,session,id,'2468'),/임시저장/);});
+test('no material or FOLLOW can be registered as ACT',()=>{assert.throws(()=>D.createDraft(F,s,session,'P-A101','SIM-MAT-0001'),/간호활동/);assert.throws(()=>D.createDraft(F,s,session,'P-A101','SIM-FOLLOW-0013'),/간호활동/);});
+test('different-shift session rejected',()=>{assert.throws(()=>D.createDraft(F,s,{userId:'N-N01',shift:'D'},'P-A101','SIM-ACT-0001'),/모의 근무조/);});
+test('execution and linked record count separately',()=>{const before=D.summary(s,'P-A101');const out=D.addExecution(F,s,session,id,'모의 수행');s=out.next;assert.equal(D.summary(s,'P-A101').executions,before.executions+1);assert.equal(D.summary(s,'P-A101').records,before.records);const record=D.addRecord(F,s,session,out.execution.id,'관찰 결과 메모');s=record.next;assert.equal(D.summary(s,'P-A101').records,before.records+1);assert.ok(s.links.some(x=>x.executionId===out.execution.id&&x.recordId===record.record.id));});
+test('unconfirmed / held order cannot be executed',()=>{const held=s.orders.find(x=>x.status==='held');assert.throws(()=>D.addExecution(F,s,session,held.id),/확정된/);});
+test('invalid state not silently reset',()=>{assert.throws(()=>D.validate(F,{schema:1,orders:[]}),/버전/);});
+test('state roundtrip valid and no plaintext PIN persisted',()=>{D.validate(F,JSON.parse(JSON.stringify(s)));assert.ok(!JSON.stringify(s).includes('2468'));});
+console.log('ALL',tests,'passed');
