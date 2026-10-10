@@ -59,8 +59,10 @@ with sync_playwright() as pw:
     saved=page.evaluate("localStorage.getItem('nursing-order-demo-v02')")
     assert '"schema":2' in saved and '"slotId":' in saved
     assert '예정 3회' in page.locator('#case-order-sheet').text_content()
+    before_count=page.locator('#order-list .order-card').count()
     page.locator('#group-by-code').check()
-    assert '개별 처방' in page.locator('#order-list').inner_text()
+    assert page.locator('#order-list .order-card').count()==before_count
+    page.locator('#group-by-code').uncheck()
     page.locator('[data-patient="P-B102"]').click()
     assert '예정: 주기 반복 · 3회' not in page.locator('#order-list').inner_text()
     page.locator('#tab-search').click()
