@@ -1,6 +1,6 @@
 # 간호처방 검색·수행·기록 UI/UX 개선 프로젝트
 
-> **상태:** v0.1 초기 문헌 조사·정보 구조 설계. **실제 간호정보시스템 아님**. 아직 프로토타입을 구현하지 않았습니다.
+> **상태:** 초기 자료 v0.1 / A–C–C 설계 방향 승인 및 요구사항·업무 시나리오 v0.2. **실제 간호정보시스템 아님**. 프로토타입 미구현.
 
 ## 프로젝트 목표
 간호사가 필요한 간호 관련 처방·중재를 정확하게 탐색하고 유사 항목을 구분하며, 처방 이후의 수행·기록·조회 상태를 서로 혼동하지 않고 확인할 수 있는 UI/UX를 연구합니다. 실제 CMC nU 시스템을 재현한 프로젝트가 아니며 연동하거나 임상적으로 사용하지 않습니다.
@@ -24,17 +24,25 @@
 - [`data/STATS.json`](data/STATS.json): 자동 집계 요약
 - [`research/SOURCES.md`](research/SOURCES.md): 공식 출처, 용도, 한계 및 APA 7판 참고문헌
 - [`design/INFORMATION_ARCHITECTURE.md`](design/INFORMATION_ARCHITECTURE.md): 처방 전·후 정보 구조, 구분해야 할 개념
+- [`design/REQUIREMENTS.md`](design/REQUIREMENTS.md): 승인된 기획 방향, 상세 요구사항, 모의 수용 기준
+- [`design/WORKFLOW_SCENARIOS.md`](design/WORKFLOW_SCENARIOS.md): 처방 전후 연결 업무 시나리오, 예외 및 평가 과제
 - [`design/ROADMAP.md`](design/ROADMAP.md): 위험·검증·진입 조건을 포함한 로드맵
-- [`design/OPEN_DECISIONS.md`](design/OPEN_DECISIONS.md): 사용자와 합의해야 할 중요 기획 결정
+- [`design/OPEN_DECISIONS.md`](design/OPEN_DECISIONS.md): 승인된 A–C–C 및 남은 UX 선택지
 - [`docs/VALIDATION_CASES.md`](docs/VALIDATION_CASES.md): MVP 전부터 보존할 안전 검증 시나리오
 - [`docs/REPOSITORY_SETUP.md`](docs/REPOSITORY_SETUP.md): private GitHub 저장소 준비 및 푸시 가이드
 - [`DEVLOG.md`](DEVLOG.md): 완료·미완료 기록
 
+## 2026-10-10 승인된 기획 방향
+- **A:** 간호중재·간호행위(합성 `ACT`) 중심. `FOLLOW`/`MAT`를 원본에서 보존하고 유형을 혼동하지 않음.
+- **C:** 처방 전 검색·선택과 처방 후 수행·기록 이력 조회를 연결하는 가상 MVP.
+- **C:** 업무 단계별 상위 화면 + 임상 목적별 카테고리의 혼합형.
+- **보류:** 실제 처방 가능 여부·권한/책임, 가상 선택 후 동작, 상태·그룹화 세칙, 구체적인 최종 UI.
+
 ## 다음 단계
-1. 현직 간호사 또는 간호정보학 전문가와 실제 간호처방 범위 확인
-2. 합성 목록의 명칭·유사어·카테고리·권한을 검증하고 MVP에 쓸 20~40개 선정
-3. 처방 전 검색/선택과 처방 후 수행/기록 조회를 연결하는 정적 와이어프레임 비교
-4. 사용자가 주요 UX 방향을 승인한 뒤 실제 프로토타입 작성
+1. 현직 간호사 또는 간호정보학 전문가와 간호처방 범위·권한·기록 관계 확인
+2. ACT 214개 중 MVP 합성 사례 20~40개 선정 및 명칭·구별 속성 검토 (전체 315개 원본 보존)
+3. [업무 시나리오](design/WORKFLOW_SCENARIOS.md) 기준 정적 와이어프레임 및 반례 비교
+4. [미결정 사항](design/OPEN_DECISIONS.md) 중 핵심 UX를 사용자와 합의한 후 별도 구현 단계 진행
 
 ## 안전·지식재산 원칙
 - 실환자 데이터, 병원 내부 비공개 화면·코드, 개인정보·계정정보를 저장하지 않습니다.
