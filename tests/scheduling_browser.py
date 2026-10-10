@@ -25,7 +25,7 @@ with sync_playwright() as pw:
     init(page)
     assert 'v0.2.5' in page.title()
     page.locator('#tab-status').click()
-    assert '예정 미지정' in page.locator('#order-list').inner_text()
+    assert '예정: 미지정' in page.locator('#order-list').inner_text()
     page.locator('#tab-search').click()
     page.locator('#account').select_option('N-D01')
     page.locator('#password').fill('2468');page.locator('#login').click()
