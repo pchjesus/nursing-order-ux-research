@@ -99,3 +99,12 @@
 ### 같은 날 확인한 PRN v0.3.1 참고 사항
 - PRN 저장소에 별도의 합성 **Kardex/Order Manage 조회**가 구현되었음을 확인했다. 간호처방 앱과 데이터/환자 ID는 아직 공유하지 않는다.
 - 최신 확인 기준 및 영향: [THREE_PROJECT_CONVERGENCE_IMPACT](design/THREE_PROJECT_CONVERGENCE_IMPACT.md) 8절, [PRACTICUM_REFERENCE_MAPPING](research/PRACTICUM_REFERENCE_MAPPING.md) 6절.
+
+## v0.2.2 (2026-10-10): 가상 Kardex · 간호처방지 화면 추가
+- 사용자 결정: **PRN·MICU·간호처방 세 프로그램을 당분간 독립적으로 개발**한다. 이번 버전은 간호처방만 수정했으며 공통 ID 매핑·외부 의사 처방 링크·통합 DB·자동 동기화는 **미구현**이다.
+- '처방·수행·기록 현황'에서 기본 닫힘의 **'가상 Kardex · 간호처방지 보기'**를 펼칠 수 있다. 4명 가상 환자별 인계 요약/관찰 초점을 별도 합성 자료로 작성했다.
+- 학교 실습자료(워크리스트 12쪽, 사례기반 실무실습 17쪽)의 **사례→Kardex→Order Manage** 정보 구조만 참고하고 원문 환자/코드/개별 약물 용량은 복제하지 않았다.
+- 간호활동 ACT만 처방지에서 조회하며, **활동 코드·개별 처방 ID·작성자·확인자·상태·작성시각·수행·기록 건수**를 별도 열로 나타낸다.
+- 순수 조회 모델 `app/order-sheet-model.js`, 합성 사례 `app/case-context.js`를 UI와 분리했다. 기존 `app/domain.js`, `app/fixtures.js`, 스키마 2 및 `nursing-order-demo-v02` 키는 **변경 없음**.
+- 기존 도메인 15/15, 그룹화 8/8, 신규 처방지 모델 17/17 단위검사 및 Chromium 주입형 상호작용 3/3 **통과**. 실제 localhost/browser 저장 복원·사용성·임상 검증은 아직 완료되지 않았다.
+- 실행: 기존 [app/index.html](app/index.html). 자세히 보기: [설계 및 사용](docs/CASE_SHEET_v0.2.2.md), [테스트 보고](docs/TEST_REPORT_v0.2.2.md).

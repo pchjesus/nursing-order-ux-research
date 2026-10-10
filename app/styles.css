@@ -14,3 +14,28 @@
 .group-status{display:block;font-size:11px;color:#647889;margin-top:6px}
 .order-group>p{margin:10px 2px;color:#8b5c12}
 .order-group>.order-card{background:white;margin:10px 0}
+
+/* v0.2.2: Optional synthetic Kardex and read-only order sheet. No state persistence or UI contract dependency. */
+.case-sheet-panel{padding:0;overflow:hidden}
+.case-sheet-panel>summary{padding:15px 16px;font-size:15px;font-weight:750;color:#285978;cursor:pointer}
+.case-sheet-panel>summary small{font-weight:500;font-size:11px;color:#718597;margin-left:8px}
+.case-sheet-panel[open]>summary{border-bottom:1px solid #dce6ee;background:#f6fafc}
+.case-sheet-content{padding:16px;display:flex;flex-direction:column;gap:18px}
+.case-sheet-content h2{font-size:15px;margin-bottom:7px}
+.case-kardex{padding:14px;border:1px solid #d7e4eb;background:#f7fafd;border-radius:9px}
+.case-kardex ul{margin:5px 0 10px;padding-left:20px;display:grid;gap:4px}
+.case-kardex li{font-size:12px;line-height:1.6}
+.case-kardex p{font-size:12px}
+.case-title{font-weight:750}
+.case-subhead{margin:12px 0 3px;font-size:12px;font-weight:800;color:#426a86}
+.case-orders>p{margin-bottom:9px}
+.sheet-group{border:1px solid #d9e5ed;border-radius:9px;margin:12px 0;overflow:hidden}
+.sheet-group-heading{padding:11px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#edf5fa;color:#305d7c;font-size:12px}
+.sheet-group-heading span{font-size:11px;color:#526c80}
+.sheet-scroll{width:100%;overflow-x:auto}
+.sheet-table{border-collapse:collapse;min-width:900px;width:100%;font-size:11px}
+.sheet-table th,.sheet-table td{padding:9px 8px;border:1px solid #e0e8ee;vertical-align:top;text-align:left}
+.sheet-table th{color:#536b7e;background:#f8fbfd;font-weight:700;white-space:nowrap}
+.sheet-table tbody tr:nth-child(even){background:#f8fafc}
+.sheet-table .code{white-space:nowrap}
+.sheet-category{display:block;color:#637a8c;font-size:10px;margin-top:2px}
