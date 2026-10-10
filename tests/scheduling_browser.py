@@ -49,13 +49,13 @@ with sync_playwright() as pw:
     order=page.locator('#order-list .order-card').first
     order.locator('[data-slot]').first.click()
     order=page.locator('#order-list .order-card').first
-    assert '연결 수행 1건 · 연결 기록 0건' in order.inner_text()
-    assert '연결 수행 0건 · 연결 기록 0건' in order.inner_text()
+    assert '연결 모의 수행 1건 · 연결 기록 0건' in order.inner_text()
+    assert '연결 모의 수행 0건 · 연결 기록 0건' in order.inner_text()
     order.locator('[data-view]').click()
     order.locator('[data-note-for]').last.fill('예정 연계 합성 기록')
     order.locator('[data-record]').last.click()
     order=page.locator('#order-list .order-card').first
-    assert '연결 수행 1건 · 연결 기록 1건' in order.inner_text()
+    assert '연결 모의 수행 1건 · 연결 기록 1건' in order.inner_text()
     saved=page.evaluate("localStorage.getItem('nursing-order-demo-v02')")
     assert '"schema":2' in saved and '"slotId":' in saved
     assert '예정 3회' in page.locator('#case-order-sheet').text_content()
@@ -77,7 +77,7 @@ with sync_playwright() as pw:
     init(page2,stored)
     page2.locator('#tab-status').click()
     assert '예정 슬롯 3개' in page2.locator('#order-list').inner_text()
-    assert '연결 수행 1건 · 연결 기록 1건' in page2.locator('#order-list').inner_text()
+    assert '연결 모의 수행 1건 · 연결 기록 1건' in page2.locator('#order-list').inner_text()
     page2.locator('[data-patient="P-B102"]').click()
     assert '조건부 · 예정 횟수 미정' in page2.locator('#order-list').inner_text()
     assert not errors,errors
