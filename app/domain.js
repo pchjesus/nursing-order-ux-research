@@ -62,6 +62,28 @@ function addRecord(fixtures,state,session,executionId,note){
  const next=clone(state);const record={id:uid('R'),patientId:execution.patientId,orderId:order.id,by:session.userId,at:stamp(),note:text,revision:1};next.records.push(record);next.links.push({recordId:record.id,executionId});next.audit.push({id:uid('AUD'),orderId:order.id,action:'simulation_record_added',by:session.userId,at:record.at});return {next,record};
 }
 function forPatient(state,patientId){const orders=state.orders.filter(x=>x.patientId===patientId);return orders.map(o=>({order:o,executions:state.executions.filter(x=>x.orderId===o.id),records:state.records.filter(x=>x.orderId===o.id),audit:state.audit.filter(x=>x.orderId===o.id)}));}
+/* Presentation grouping only: never merge order instances or infer clinical equivalence. */
+function groupPatientOrders(fixtures,state,patientId,options={}){
+ assert(patient(fixtures,patientId),'가상 환자를 찾을 수 없습니다.');
+ const statusFilter=String(options.status||'');
+ const query=String(options.query||'').trim().toLocaleLowerCase('ko');
+ const visible=forPatient(state,patientId).filter(row=>{
+  if(statusFilter&&row.order.status!==statusFilter)return false;
+  const name=item(fixtures,row.order.code)?.name||'';
+  return !query||row.order.code.toLocaleLowerCase('ko').includes(query)||name.toLocaleLowerCase('ko').includes(query);
+ }).sort((a,b)=>b.order.createdAt.localeCompare(a.order.createdAt)||a.order.id.localeCompare(b.order.id));
+ const groups=new Map();
+ for(const row of visible){
+  const key=row.order.code;
+  if(!groups.has(key))groups.set(key,{patientId,code:key,items:[],executions:0,records:0,statusCounts:{}});
+  const group=groups.get(key);
+  group.items.push(row);
+  group.executions+=row.executions.length;
+  group.records+=row.records.length;
+  group.statusCounts[row.order.status]=(group.statusCounts[row.order.status]||0)+1;
+ }
+ return [...groups.values()];
+}
 function summary(state,patientId){const data=forPatient(state,patientId);return {confirmed:data.filter(x=>x.order.status==='confirmed').length,drafts:data.filter(x=>x.order.status==='draft').length,executions:data.reduce((n,x)=>n+x.executions.length,0),records:data.reduce((n,x)=>n+x.records.length,0)};}
-return {STORAGE_KEY,makeSeed,validate,search,authenticate,shiftAllowed,createDraft,confirmDraft,addExecution,addRecord,forPatient,summary,clone};
+return {STORAGE_KEY,makeSeed,validate,search,authenticate,shiftAllowed,createDraft,confirmDraft,addExecution,addRecord,forPatient,groupPatientOrders,summary,clone};
 });
