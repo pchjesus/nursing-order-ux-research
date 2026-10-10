@@ -70,3 +70,9 @@
 - UI의 외관은 레퍼런스가 될 수 있지만, 실제 nU 화면의 정확한 복제라고 주장하지 않는다.
 
 관련 문서: [3개 프로젝트 통합 영향 분석](../design/THREE_PROJECT_CONVERGENCE_IMPACT.md), [ID 계약 초안](../design/SHARED_IDENTITY_LINK_DRAFT.md).
+
+## 6. PRN v0.3.1에 선반영된 참고자료 구조와의 관계
+- 동일한 두 학교 PDF의 형식을 참고한 PRN `order-sheet-model.js`/ `order-sheet-ui.js` 및 `data/teaching_case_context.json`가 별도 저장소에 추가되었다(`39cf16a`, 2026-10-10 확인).
+- 현재 PRN의 Kardex/Order Manage는 **약물처방 조회 및 학습용 인계 참고 화면**이며, 간호처방의 `ACT` 주문·수행·기록 데이터와 연동되어 있지 않다.
+- 향후 통합 화면에서 PRN의 표시 모델을 재사용할 수 있는지 검토하되, 파일 복사·공통 모델화·환자 alias 변경은 **별도 영향분석과 사용자 승인 뒤에만** 실시한다.
+- 임의의 1일 용량·1회 수량 계산 및 실제 간호행위 자동 생성은 하지 않으며, 값이 없으면 미기재/미확인으로 처리한다.

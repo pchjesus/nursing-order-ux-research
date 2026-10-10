@@ -85,3 +85,11 @@ SharedStaff (공통 합성 직원 ID)
 - HL7. (2019). *MedicationRequest—FHIR R4*. https://hl7.org/fhir/R4/medicationrequest.html
 - HL7. (2019). *ServiceRequest—FHIR R4*. https://hl7.org/fhir/R4/servicerequest.html
   - 이들은 **개념 분류 참고**이며 FHIR 적합성·nU 호환성을 증명하지 않는다.
+
+## 8. PRN 후속 버전 발견 — v0.3.1 참고 메모 (2026-10-10)
+- 최초 영향 분석은 PRN `e2b6620` (v0.3)을 기준으로 시작했다. 같은 날 다른 개발 흐름에서 PRN `main`이 `39cf16a`(v0.3.1)로 업데이트되었음을 후속 확인했다. 이전 코드 분석 기록은 **당시 스냅샷**으로 유지한다.
+- 새로 확인한 `docs/EDUCATIONAL-SHEET-MAPPING-v0.3.1.md`, `order-sheet-model.js`, `order-sheet-ui.js`, `data/teaching_case_context.json`에 **기존 PRN 가상 환자 4명 기준 Kardex/Order Manage 읽기용 표시**가 구현되었다.
+- PRN v0.3.1은 `data/patients.json` 원본 ID를 유지하고, 주문 열을 출처/작성시각별로 묶으며, 없는 용량·횟수 필드는 `미기재`로 표시한다. **간호처방 앱의 환자/직원/주문 ID 통합, 양방향 연결 및 영속적 처방 저장은 아직 구현하지 않았다.**
+- PRN의 `order-sheet-model.js`에서 시연용 `order_id`가 표의 '처방코드' 위치에 보이더라도 **원본 실제 병원 코드를 확인했다는 뜻이 아니다**. 간호처방의 `SIM-ACT-*` 코드와도 같은 식별자로 취급 금지.
+- **설계 영향:** 신규 Kardex 표시를 간호 앱에 그대로 복제하기보다는 차후 공통된 **표시 데이터 계약/출처 분리**만 검토한다. 동일한 교내 자료에서 유래한 구조라는 이유로 환자·처방을 자동 연결하지 않는다.
+- 사용자 승인 전까지 두 프로젝트 UI/데이터 공유·마이그레이션 없음. PRN 관련 다음 작업의 최신 기준은 v0.3.1을 다시 조회하여 결정한다.

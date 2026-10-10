@@ -95,3 +95,7 @@
 - 향후 합성 환자·Kardex·Order Manage 형식에는 사용자 제공 학교 실습 자료의 **구조**를 참고한다. 실제 nU의 처방 화면이나 공식 업무 규칙으로 단정하지 않음.
 - **[3개 프로젝트 통합 영향 분석](design/THREE_PROJECT_CONVERGENCE_IMPACT.md)** · **[공통 ID/연관 참조 계약 초안](design/SHARED_IDENTITY_LINK_DRAFT.md)** · **[실습자료 구조 참고표](research/PRACTICUM_REFERENCE_MAPPING.md)**
 - 원본 교내 PDF, 환자/학생 이름·차트번호 또는 학교 평가 처방의 원문을 저장소에 업로드하지 않음. 모든 실제 데이터 연계 및 합성 사례 적용은 후속 사용자 승인 후.
+
+### 같은 날 확인한 PRN v0.3.1 참고 사항
+- PRN 저장소에 별도의 합성 **Kardex/Order Manage 조회**가 구현되었음을 확인했다. 간호처방 앱과 데이터/환자 ID는 아직 공유하지 않는다.
+- 최신 확인 기준 및 영향: [THREE_PROJECT_CONVERGENCE_IMPACT](design/THREE_PROJECT_CONVERGENCE_IMPACT.md) 8절, [PRACTICUM_REFERENCE_MAPPING](research/PRACTICUM_REFERENCE_MAPPING.md) 6절.
