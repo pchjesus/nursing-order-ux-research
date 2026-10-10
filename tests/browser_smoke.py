@@ -10,7 +10,7 @@ with sync_playwright() as p:
  page.set_content(html,wait_until='domcontentloaded')
  page.add_style_tag(content=(root/'styles.css').read_text())
  page.evaluate("""() => {const cache={}; Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem(k){return cache[k]??null},setItem(k,v){cache[k]=String(v)},removeItem(k){delete cache[k]}}})}""")
- for file in ['fixtures.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
+ for file in ['fixtures.js','activity-details.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
   page.add_script_tag(content=(root/file).read_text())
  page.evaluate('window.dispatchEvent(new Event("DOMContentLoaded"))')
  page.wait_for_timeout(300)
@@ -18,7 +18,7 @@ with sync_playwright() as p:
  print('PATIENT',page.locator('#patient-name').inner_text())
  print('CATALOG RESULTS',page.locator('#result-count').inner_text())
  assert page.locator('[data-patient]').count()==4
- assert page.locator('[data-item]').count()==38
+ assert page.locator('[data-item]').count()==42
  page.locator('#query').fill('드레싱')
  assert page.locator('[data-item]').count()>=4
  page.locator('[data-item="SIM-ACT-0053"]').click()

@@ -35,16 +35,51 @@ function validate(fixtures,state){
  for(const key of ['orders','executions','records','links','audit']) assert(Array.isArray(state[key]),`잘못된 데이터: ${key}`);
  const unique=(arr,k)=>new Set(arr.map(x=>x[k])).size===arr.length;
  for(const key of ['orders','executions','records','audit'])assert(unique(state[key],'id'),`중복 ID: ${key}`);
- state.orders.forEach(o=>{assert(patient(fixtures,o.patientId)&&item(fixtures,o.code)&&VALID_STATUSES.includes(o.status),'처방 참조/상태 오류');assert(actor(fixtures,o.orderedBy),'처방자 없음');if(o.checkedBy)assert(actor(fixtures,o.checkedBy),'확인자 없음');});
+ state.orders.forEach(o=>{assert(patient(fixtures,o.patientId)&&item(fixtures,o.code)&&VALID_STATUSES.includes(o.status),'처방 참조/상태 오류');assert(actor(fixtures,o.orderedBy),'처방자 없음');if(o.checkedBy)assert(actor(fixtures,o.checkedBy),'확인자 없음');if(o.details!==undefined){const d=cleanDetails(fixtures,o.code,o.details);assert(d&&typeof o.details.productName==='string'&&o.details.productName.length<=160&&typeof o.details.productKind==='string'&&o.details.productKind.length<=120,'제품 정보 스냅샷의 형식이 올바르지 않습니다.');}});
  state.executions.forEach(e=>{let o=state.orders.find(x=>x.id===e.orderId);assert(o&&o.patientId===e.patientId,'수행의 환자·처방 불일치');});
  state.records.forEach(d=>{let o=state.orders.find(x=>x.id===d.orderId);assert(o&&o.patientId===d.patientId,'기록의 환자·처방 불일치');});
  state.links.forEach(l=>{let e=state.executions.find(x=>x.id===l.executionId),d=state.records.find(x=>x.id===l.recordId);assert(e&&d&&e.orderId===d.orderId,'수행-기록 링크 오류');});
  return state;
 }
-function search(fixtures,q,category){const norm=s=>String(s||'').toLocaleLowerCase('ko').replace(/\s+/g,'').trim(); const term=norm(q);return fixtures.catalog.filter(x=>(!category||x.category===category)&&(!term||[x.name,x.code,x.category,...x.aliases].some(v=>norm(v).includes(term))));}
-function createDraft(fixtures,state,session,patientId,code,note=''){
+function search(fixtures,q,category){const norm=s=>String(s||'').toLocaleLowerCase('ko').replace(/\s+/g,'').trim(); const term=norm(q);return fixtures.catalog.filter(x=>{
+ if(category&&x.category!==category)return false;
+ if(!term)return true;
+ const p=fixtures.profiles?.[x.code];
+ const products=fixtures.products?.filter(z=>p?.families?.includes(z.family))||[];
+ return [x.name,x.code,x.category,...x.aliases,...(p?.methods||[]),...products.map(z=>z.name)].some(v=>norm(v).includes(term));
+});}
+function cleanDetails(fixtures,code,value){
+ if(value===null||value===undefined)return null; // legacy orders remain valid and unmigrated
+ const profile=fixtures.profiles?.[code];
+ assert(profile&&value&&typeof value==='object'&&!Array.isArray(value),'세부 조건 참조 구조가 올바르지 않습니다.');
+ const fields={site:'sites',purpose:'purposes',frequency:'frequencies',method:'methods'};
+ const detail={};
+ for(const [field,key] of Object.entries(fields)){
+  const v=value[field]??'';
+  assert(typeof v==='string'&&v.length<=100,'세부 조건 값의 형식이 올바르지 않습니다.');
+  assert(v===''||profile[key].includes(v),'선택한 간호활동에 허용되지 않는 세부 조건입니다.');
+  detail[field]=v;
+ }
+ const productId=value.productId??'';
+ assert(typeof productId==='string'&&productId.length<=80,'제품 참조 형식이 올바르지 않습니다.');
+ const product=productId?fixtures.products?.find(x=>x.id===productId):null;
+ assert(!productId||(product&&profile.families.includes(product.family)),'해당 활동에 연결할 수 없는 제품·기구 후보입니다.');
+ if(productId&&['SIM-ACT-0033','SIM-ACT-0043','SIM-ACT-0063'].includes(code)&&product.family==='dressing')assert(productId==='SIM-PRD-003','삽입부 드레싱 활동의 제품 유형이 맞지 않습니다.');
+ const method=detail.method;
+ if(productId&&method==='인퓨전 펌프 전용세트')assert(product.family==='infusion-pump','인퓨전 펌프 방식과 제품 유형이 일치하지 않습니다.');
+ if(productId&&method==='도지플로우(유량조절기형)')assert(product.family==='infusion-flow','유량조절기형 방식과 제품 유형이 일치하지 않습니다.');
+ if(productId&&method==='중력식 일반세트')assert(product.family==='infusion-gravity'&&product.id!=='SIM-GEN-003','중력식 일반 방식과 세트 유형이 일치하지 않습니다.');
+ if(productId&&method==='미세방울세트')assert(product.id==='SIM-GEN-003','미세방울 세트 유형과 일치하지 않습니다.');
+ detail.productId=productId;
+ detail.productName=product?.name||''; // immutable name snapshot for independent history
+ detail.productKind=product?.kind||'';
+ return detail;
+}
+function createDraft(fixtures,state,session,patientId,code,note='',details=null){
  ensureSession(fixtures,session); assert(patient(fixtures,patientId),'가상 환자를 찾을 수 없습니다.');assert(item(fixtures,code),'간호활동(ACT)만 선택할 수 있습니다.');
+ const canonical=cleanDetails(fixtures,code,details);
  const next=clone(state); let order={id:uid('O'),patientId,code,status:'draft',orderedBy:session.userId,checkedBy:null,createdAt:stamp(),confirmedAt:null,shift:session.shift,note:String(note).slice(0,200)};
+ if(canonical!==null)order.details=canonical;
  next.orders.push(order);next.audit.push({id:uid('AUD'),orderId:order.id,action:'draft_saved',by:session.userId,at:stamp()});return {next,order};
 }
 function confirmDraft(fixtures,state,session,orderId,pin){

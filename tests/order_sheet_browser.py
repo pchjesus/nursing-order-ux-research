@@ -17,10 +17,10 @@ with sync_playwright() as p:
         html=html.replace('<link rel="stylesheet" href="styles.css">','')
         page.set_content(html)
         page.add_style_tag(content=(APP/'styles.css').read_text(encoding='utf-8'))
-        for file in ['fixtures.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
+        for file in ['fixtures.js','activity-details.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
             page.add_script_tag(content=(APP/file).read_text(encoding='utf-8'))
         page.evaluate("window.dispatchEvent(new Event('DOMContentLoaded'))")
-        assert page.title()=='Nursing Order UX Lab · v0.2.2'
+        assert page.title()=='Nursing Order UX Lab · v0.2.3'
         assert page.locator('#patient-name').inner_text()=='가상 환자 A'
         page.locator('#tab-status').click()
         assert page.locator('#case-sheet-panel').is_visible()
@@ -60,7 +60,7 @@ with sync_playwright() as p:
         stored=page.evaluate("window.localStorage.getItem('nursing-order-demo-v02')")
         assert stored and 'SIM-ACT-0053' in stored
         assert '가상 확정' in page.locator('#case-order-sheet').inner_text()
-        screenshot=ROOT/'docs'/'ui-v0.2.2.png'
+        screenshot=ROOT/'docs'/'ui-v0.2.3.png'
         page.screenshot(path=str(screenshot),full_page=True)
         assert not errors, f'JavaScript errors: {errors}'
         print('PASS: injected Chromium patient switching, Kardex, read-only sheet, login, save, reauth, mock localStorage, no JS exceptions')

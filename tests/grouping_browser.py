@@ -9,7 +9,7 @@ with sync_playwright() as p:
  page.set_content((root/'index.html').read_text(),wait_until='domcontentloaded')
  page.add_style_tag(content=(root/'styles.css').read_text())
  page.evaluate("""() => {const values={};Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem(k){return values[k]??null},setItem(k,v){values[k]=String(v)},removeItem(k){delete values[k]}}})}""")
- for f in ['fixtures.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
+ for f in ['fixtures.js','activity-details.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
   page.add_script_tag(content=(root/f).read_text())
  page.evaluate('window.dispatchEvent(new Event("DOMContentLoaded"))')
  page.locator('#tab-status').click()

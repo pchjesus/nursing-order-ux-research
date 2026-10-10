@@ -39,3 +39,18 @@
 .sheet-table tbody tr:nth-child(even){background:#f8fafc}
 .sheet-table .code{white-space:nowrap}
 .sheet-category{display:block;color:#637a8c;font-size:10px;margin-top:2px}
+
+/* v0.2.3: structured educational activity details; no automatic clinical selection */
+.activity-details{padding:12px;background:#f7fbfe;border:1px solid #d4e5f0;border-radius:9px;margin:10px 0}
+.activity-details h3{font-size:13px;margin-bottom:4px}
+.activity-details .help{margin-bottom:5px}
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.detail-grid label{min-width:0}
+.activity-details select{max-width:100%}
+#detail-product-info a{margin-left:4px;text-decoration:underline}
+.order-details{display:flex;flex-wrap:wrap;gap:5px}
+.detail-pill{padding:3px 7px;border:1px solid #e0e6ed;border-radius:5px;background:#f8fafb;color:#38566d;font-size:11px}
+.detail-pill b{color:#65788a;margin-right:4px}
+.detail-preview{margin-top:8px}.detail-legacy{font-size:11px;color:#8a7780}
+.detail-record{margin-top:6px}
+@media(max-width:470px){.detail-grid{grid-template-columns:1fr}}
