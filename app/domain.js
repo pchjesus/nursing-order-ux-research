@@ -35,8 +35,8 @@ function validate(fixtures,state){
  for(const key of ['orders','executions','records','links','audit']) assert(Array.isArray(state[key]),`잘못된 데이터: ${key}`);
  const unique=(arr,k)=>new Set(arr.map(x=>x[k])).size===arr.length;
  for(const key of ['orders','executions','records','audit'])assert(unique(state[key],'id'),`중복 ID: ${key}`);
- state.orders.forEach(o=>{assert(patient(fixtures,o.patientId)&&item(fixtures,o.code)&&VALID_STATUSES.includes(o.status),'처방 참조/상태 오류');assert(actor(fixtures,o.orderedBy),'처방자 없음');if(o.checkedBy)assert(actor(fixtures,o.checkedBy),'확인자 없음');if(o.details!==undefined){const d=cleanDetails(fixtures,o.code,o.details);assert(d&&typeof o.details.productName==='string'&&o.details.productName.length<=160&&typeof o.details.productKind==='string'&&o.details.productKind.length<=120,'제품 정보 스냅샷의 형식이 올바르지 않습니다.');}});
- state.executions.forEach(e=>{let o=state.orders.find(x=>x.id===e.orderId);assert(o&&o.patientId===e.patientId,'수행의 환자·처방 불일치');});
+ state.orders.forEach(o=>{assert(patient(fixtures,o.patientId)&&item(fixtures,o.code)&&VALID_STATUSES.includes(o.status),'처방 참조/상태 오류');assert(actor(fixtures,o.orderedBy),'처방자 없음');if(o.checkedBy)assert(actor(fixtures,o.checkedBy),'확인자 없음');if(o.schedule!==undefined)validateSchedule(o.schedule,o.id);if(o.details!==undefined){const d=cleanDetails(fixtures,o.code,o.details);assert(d&&typeof o.details.productName==='string'&&o.details.productName.length<=160&&typeof o.details.productKind==='string'&&o.details.productKind.length<=120,'제품 정보 스냅샷의 형식이 올바르지 않습니다.');}});
+ state.executions.forEach(e=>{let o=state.orders.find(x=>x.id===e.orderId);assert(o&&o.patientId===e.patientId,'수행의 환자·처방 불일치');if(e.slotId!==undefined)assert(typeof e.slotId==='string'&&o.schedule?.slots.some(s=>s.id===e.slotId),'수행-예정 시점 참조 오류');});
  state.records.forEach(d=>{let o=state.orders.find(x=>x.id===d.orderId);assert(o&&o.patientId===d.patientId,'기록의 환자·처방 불일치');});
  state.links.forEach(l=>{let e=state.executions.find(x=>x.id===l.executionId),d=state.records.find(x=>x.id===l.recordId);assert(e&&d&&e.orderId===d.orderId,'수행-기록 링크 오류');});
  return state;
@@ -75,11 +75,73 @@ function cleanDetails(fixtures,code,value){
  detail.productKind=product?.kind||'';
  return detail;
 }
-function createDraft(fixtures,state,session,patientId,code,note='',details=null){
+
+/* Optional v0.2.5 synthetic schedule: immutable planned slots, separate from actual executions. */
+const SCHEDULE_KINDS=['once','interval','conditional'];
+const SLOT_STATES=['planned','held','cancelled'];
+function isoTime(value){
+ assert(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value,'예정 시각은 유효한 ISO 시각이어야 합니다.');
+ return value;
+}
+function buildSchedule(spec,orderId){
+ if(spec===null||spec===undefined||spec.kind==='unspecified')return null;
+ assert(spec&&typeof spec==='object'&&!Array.isArray(spec)&&SCHEDULE_KINDS.includes(spec.kind),'예정 유형이 올바르지 않습니다.');
+ if(spec.kind==='conditional'){
+  const condition=String(spec.condition||'').trim();
+  assert(condition.length>=2&&condition.length<=160,'조건부 수행 조건은 2~160자로 입력해 주세요.');
+  return {kind:'conditional',condition,slots:[]};
+ }
+ const startAt=isoTime(spec.startAt);
+ const count=spec.kind==='once'?1:Number(spec.count);
+ const everyHours=spec.kind==='interval'?Number(spec.everyHours):null;
+ assert(Number.isInteger(count)&&count>=1&&count<=24&&(spec.kind!=='interval'||count>=2),'반복 횟수는 2~24회입니다.');
+ if(spec.kind==='interval')assert(Number.isInteger(everyHours)&&everyHours>=1&&everyHours<=48,'반복 간격은 1~48시간입니다.');
+ const slots=Array.from({length:count},(_,i)=>({
+  id:orderId+'-S'+String(i+1).padStart(3,'0'),
+  at:new Date(Date.parse(startAt)+i*(everyHours||0)*3600000).toISOString(),
+  status:'planned'
+ }));
+ return {kind:spec.kind,...(spec.kind==='interval'?{everyHours}:{}),slots};
+}
+function validateSchedule(schedule,orderId){
+ assert(schedule&&typeof schedule==='object'&&!Array.isArray(schedule)&&SCHEDULE_KINDS.includes(schedule.kind)&&Array.isArray(schedule.slots),'예정 데이터 구조 오류');
+ const slots=schedule.slots;
+ assert(slots.length<=(24),'예정 시점은 최대 24개입니다.');
+ if(schedule.kind==='conditional'){
+  assert(typeof schedule.condition==='string'&&schedule.condition.trim().length>=2&&schedule.condition.length<=160&&slots.length===0,'조건부 예정 정보 오류');
+ }else{
+  assert(slots.length>=(schedule.kind==='once'?1:2)&&(schedule.kind!=='once'||slots.length===1),'예정 시점 개수 오류');
+  if(schedule.kind==='interval')assert(Number.isInteger(schedule.everyHours)&&schedule.everyHours>=1&&schedule.everyHours<=48,'예정 반복 간격 오류');
+ }
+ const ids=new Set();
+ for(let i=0;i<slots.length;i++){
+  const slot=slots[i];
+  assert(slot&&slot.id===orderId+'-S'+String(i+1).padStart(3,'0')&&!ids.has(slot.id)&&SLOT_STATES.includes(slot.status),'예정 ID 또는 상태 오류');
+  isoTime(slot.at);ids.add(slot.id);
+  if(schedule.kind==='interval'&&i>0)assert(Date.parse(slot.at)-Date.parse(slots[i-1].at)===schedule.everyHours*3600000,'반복 간격과 예정 시점 불일치');
+ }
+ return true;
+}
+function scheduleOverview(state,order){
+ const events=state.executions.filter(e=>e.orderId===order.id);
+ const known=!!order.schedule,conditional=order.schedule?.kind==='conditional';
+ const slots=(order.schedule?.slots||[]).map(slot=>{
+  const executions=events.filter(e=>e.slotId===slot.id);
+  const executionIds=new Set(executions.map(e=>e.id));
+  const recordIds=new Set(state.links.filter(l=>executionIds.has(l.executionId)).map(l=>l.recordId));
+  const records=state.records.filter(r=>r.orderId===order.id&&recordIds.has(r.id));
+  return {...slot,executions,records};
+ });
+ return {kind:order.schedule?.kind||'unspecified',condition:order.schedule?.condition||'',
+  planned:!known||conditional?null:slots.length,slots,unassigned:events.filter(e=>!e.slotId).length};
+}
+
+function createDraft(fixtures,state,session,patientId,code,note='',details=null,scheduleSpec=null){
  ensureSession(fixtures,session); assert(patient(fixtures,patientId),'가상 환자를 찾을 수 없습니다.');assert(item(fixtures,code),'간호활동(ACT)만 선택할 수 있습니다.');
  const canonical=cleanDetails(fixtures,code,details);
  const next=clone(state); let order={id:uid('O'),patientId,code,status:'draft',orderedBy:session.userId,checkedBy:null,createdAt:stamp(),confirmedAt:null,shift:session.shift,note:String(note).slice(0,200)};
  if(canonical!==null)order.details=canonical;
+ const schedule=buildSchedule(scheduleSpec,order.id);if(schedule)order.schedule=schedule;
  next.orders.push(order);next.audit.push({id:uid('AUD'),orderId:order.id,action:'draft_saved',by:session.userId,at:stamp()});return {next,order};
 }
 function confirmDraft(fixtures,state,session,orderId,pin){
@@ -87,9 +149,11 @@ function confirmDraft(fixtures,state,session,orderId,pin){
  const next=clone(state);const order=next.orders.find(x=>x.id===orderId);assert(order,'처방을 찾을 수 없습니다.');assert(order.status==='draft','임시저장된 처방만 확정할 수 있습니다.');assert(order.orderedBy===session.userId,'처방을 저장한 계정만 이번 데모에서 재인증할 수 있습니다.');
  order.status='confirmed';order.checkedBy=session.userId;order.confirmedAt=stamp();next.audit.push({id:uid('AUD'),orderId,action:'reauth_confirmed',by:session.userId,at:order.confirmedAt});return next;
 }
-function addExecution(fixtures,state,session,orderId,note=''){
- ensureSession(fixtures,session); const order=state.orders.find(x=>x.id===orderId);assert(order&&order.status==='confirmed','확정된 처방만 모의 수행 기록을 추가할 수 있습니다.');const next=clone(state);
- const e={id:uid('E'),orderId,patientId:order.patientId,by:session.userId,at:stamp(),note:String(note).slice(0,200)};next.executions.push(e);next.audit.push({id:uid('AUD'),orderId,action:'simulation_execution_added',by:session.userId,at:e.at});return {next,execution:e};
+function addExecution(fixtures,state,session,orderId,note='',slotId=null){
+ ensureSession(fixtures,session); const order=state.orders.find(x=>x.id===orderId);assert(order&&order.status==='confirmed','확정된 처방만 모의 수행 기록을 추가할 수 있습니다.');const slot=slotId?order.schedule?.slots.find(s=>s.id===slotId):null;
+ assert(!slotId||slot,'이 처방에 속하지 않는 예정 시점입니다.');assert(!slot||slot.status==='planned','보류·취소된 예정 시점은 연결 수행을 추가할 수 없습니다.');
+ const next=clone(state);
+ const e={id:uid('E'),orderId,patientId:order.patientId,by:session.userId,at:stamp(),note:String(note).slice(0,200)};if(slot)e.slotId=slot.id;next.executions.push(e);next.audit.push({id:uid('AUD'),orderId,action:'simulation_execution_added',by:session.userId,at:e.at});return {next,execution:e};
 }
 function addRecord(fixtures,state,session,executionId,note){
  ensureSession(fixtures,session); const execution=state.executions.find(x=>x.id===executionId);assert(execution,'해당 수행 사건이 없습니다.');const order=state.orders.find(x=>x.id===execution.orderId);assert(order&&order.status==='confirmed','확정된 처방에서만 기록을 추가할 수 있습니다.');
@@ -119,6 +183,6 @@ function groupPatientOrders(fixtures,state,patientId,options={}){
  }
  return [...groups.values()];
 }
-function summary(state,patientId){const data=forPatient(state,patientId);return {confirmed:data.filter(x=>x.order.status==='confirmed').length,drafts:data.filter(x=>x.order.status==='draft').length,executions:data.reduce((n,x)=>n+x.executions.length,0),records:data.reduce((n,x)=>n+x.records.length,0)};}
-return {STORAGE_KEY,makeSeed,validate,search,authenticate,shiftAllowed,createDraft,confirmDraft,addExecution,addRecord,forPatient,groupPatientOrders,summary,clone};
+function summary(state,patientId){const data=forPatient(state,patientId);const plans=data.map(x=>scheduleOverview(state,x.order));return {orders:data.length,plannedSlots:plans.reduce((n,x)=>n+(x.planned??0),0),unknownPlans:plans.filter(x=>x.planned===null).length,confirmed:data.filter(x=>x.order.status==='confirmed').length,drafts:data.filter(x=>x.order.status==='draft').length,executions:data.reduce((n,x)=>n+x.executions.length,0),records:data.reduce((n,x)=>n+x.records.length,0)};}
+return {STORAGE_KEY,makeSeed,validate,search,authenticate,shiftAllowed,createDraft,confirmDraft,addExecution,addRecord,forPatient,groupPatientOrders,summary,buildSchedule,validateSchedule,scheduleOverview,clone};
 });

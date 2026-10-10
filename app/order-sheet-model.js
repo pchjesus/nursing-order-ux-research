@@ -52,7 +52,7 @@
      confirmedLabel:o.confirmedAt?localTimestamp(o.confirmedAt):'—',
      executions:state.executions.filter(e=>e.orderId===o.id).length,
      records:state.records.filter(d=>d.orderId===o.id).length,
-     note:String(o.note||''),detailSummary:o.details?[o.details.site,o.details.purpose,o.details.frequency,o.details.method,displayProductDetails(fixtures,o.details)].filter(Boolean).join(' · '):'세부 조건 미기재',sourceLabel:provenance,relatedRequestStatus:'외부 의사처방 연계 미구현'
+     note:String(o.note||''),scheduleLabel:!o.schedule?'예정 미지정':o.schedule.kind==='conditional'?'조건부 · 예정 횟수 미정':`예정 ${o.schedule.slots.length}회`,detailSummary:o.details?[o.details.site,o.details.purpose,o.details.frequency,o.details.method,displayProductDetails(fixtures,o.details)].filter(Boolean).join(' · '):'세부 조건 미기재',sourceLabel:provenance,relatedRequestStatus:'외부 의사처방 연계 미구현'
    });
   }
   const result=[...groups.values()].sort((a,b)=>b.createdLabel.localeCompare(a.createdLabel,'ko')||a.authorId.localeCompare(b.authorId));

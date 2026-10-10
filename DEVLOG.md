@@ -192,3 +192,19 @@
 - 대표 용어/세부 유형의 과도한 통합이 없는지 실제 사용자 피드백으로 검토.
 - 별도 사용자 동의 없이 통합 시스템, 실제 병원 데이터/계정, 서버 저장으로 확장하지 않음.
 - 문서: `docs/REPRESENTATIVE_TERMS_v0.2.4.md`, `docs/TEST_REPORT_v0.2.4.md`.
+
+## 2026-10-10 — v0.2.5 반복 예정·수행·기록 조회
+
+### 기준
+- GitHub Private `main` 최신 `561e341c221245cd4e7a996b17abd8459cef6351` 확인 후 시작. 데이터 315개(ACT/FOLLOW/MAT), 앱 ACT 42, 환자 4, 시드 16, 제품 18 및 과거 저장 스키마 2/키 보호.
+
+### 구현
+- `app/domain.js`: 선택형 `order.schedule`(일회성/간격 반복/조건부), 저장검증과 스냅샷 슬롯, 선택형 `execution.slotId`, 별도의 예정 수/미정 수 집계와 수행·기록 연결 조회. 과거 주문/수행은 자동 변환·재연결하지 않음.
+- `app/app.js`, `app/index.html`, `app/styles.css`: 처방 전 예정 입력과 처방 후 개별 슬롯·수행·기록 현황 및 읽기 전용 그룹 요약. 이전 일반 수행 추가, 재인증, 기록 추가 흐름 보호.
+- `app/order-sheet-model.js`: 기존 Kardex/간호처방지 표에 예정 횟수/조건부 미정/미지정 읽기 전용 표시.
+- `tests/scheduling.test.js`, `tests/scheduling_browser.py`: 입력 검증·환자 격리·슬롯 ID·명시적 링크·기록/그룹/저장 복원 회귀. 기존 버전명에 결합된 브라우저 제목 기대값만 갱신.
+- `.github/workflows/synthetic-regression.yml`: GitHub Actions에 Node·Chromium DOM 주입형 회귀검사 정의. **실제 실행 결과는 Actions 런 상태로 별도 검증한다.**
+
+### 제한·다음 단계
+- 기존 로컬 저장 형식과 객체 관계를 유지하며 마이그레이션 없음. 실제 시간/근무조·보류/취소 상태전이 및 정정 로직은 사용자 결정과 임상 검증 전까지 보류.
+- 자동검사 보고는 실제 실행된 범위만 `docs/TEST_REPORT_v0.2.5.md`에 기록; 별도 사용자 사용성/실제 nU 업무 적합성 시험 없음.

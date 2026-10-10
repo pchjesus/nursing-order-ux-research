@@ -20,7 +20,7 @@ with sync_playwright() as p:
         for file in ['fixtures.js','activity-details.js','case-context.js','domain.js','order-sheet-model.js','app.js']:
             page.add_script_tag(content=(APP/file).read_text(encoding='utf-8'))
         page.evaluate("window.dispatchEvent(new Event('DOMContentLoaded'))")
-        assert page.title()=='Nursing Order UX Lab · v0.2.4'
+        assert page.title()=='Nursing Order UX Lab · v0.2.5'
         assert page.locator('#patient-name').inner_text()=='가상 환자 A'
         page.locator('#tab-status').click()
         assert page.locator('#case-sheet-panel').is_visible()

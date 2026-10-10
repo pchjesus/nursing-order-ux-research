@@ -21,7 +21,7 @@ with sync_playwright() as pw:
     page=browser.new_page(viewport={'width':1440,'height':1100},locale='ko-KR')
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     init(page)
-    assert 'v0.2.4' in page.title()
+    assert 'v0.2.5' in page.title()
     page.locator('#query').fill('듀오덤')
     page.locator('[data-item="SIM-ACT-0053"]').click()
     # Category list is scoped to the chosen ACT: no infusion categories for dressings.
