@@ -27,6 +27,55 @@ const PRODUCTS=[
  {id:'SIM-GEN-005',name:'체위변경 보조쿠션',manufacturer:null,kind:'자세 유지 물품 유형',family:'position',url:null,verified:'제품 유형 예시·제조사 미지정'},
  {id:'SIM-GEN-006',name:'맥박산소측정기 센서',manufacturer:null,kind:'모니터링 기구 유형',family:'monitor',url:null,verified:'제품 유형 예시·제조사 미지정'}
 ];
+/* Representative terms are NOT exact devices, SKU substitution, interchangeability, or clinical authorization.
+   Old id/name/manufacturer/url fields stay intact for provenance and saved-history compatibility. */
+const MATERIAL_CATEGORIES=[
+ {id:'dressing-hydro',label:'드레싱 · 하이드로콜로이드'},
+ {id:'dressing-film',label:'드레싱 · 투명 필름'},
+ {id:'dressing-foam',label:'드레싱 · 폼'},
+ {id:'skin-barrier',label:'피부 보호재'},
+ {id:'infusion-gravity',label:'수액세트 · 중력식/정량 챔버'},
+ {id:'infusion-flow',label:'수액세트 · 유량조절기형'},
+ {id:'infusion-pump',label:'수액세트 · 인퓨전 펌프 전용'},
+ {id:'iv-accessory',label:'정맥관 관리 보조품'},
+ {id:'airway',label:'흡인·기도 관리 기구'},
+ {id:'monitor',label:'측정·모니터링 기구'},
+ {id:'urinary',label:'배뇨·도뇨 기구'},
+ {id:'position',label:'체위변경·자세 보조품'}
+];
+const REPRESENTATIVES={
+ 'SIM-PRD-001':['듀오덤','얇은형','dressing-hydro',['하이드로콜로이드','Duoderm']],
+ 'SIM-PRD-002':['듀오덤','일반형','dressing-hydro',['하이드로콜로이드','Duoderm']],
+ 'SIM-PRD-003':['비지블 드레싱','투명 필름형','dressing-film',['비지블','테가덤','Tegaderm','투명필름']],
+ 'SIM-PRD-004':['폼 드레싱','보더형','dressing-foam',['알레빈','ALLEVYN','폼']],
+ 'SIM-PRD-005':['피부보호 필름','필름형','skin-barrier',['카빌론','Cavilon']],
+ 'SIM-PRD-006':['인퓨전 펌프 세트','Infusomat 계열 참고','infusion-pump',['인퓨전','펌프']],
+ 'SIM-PRD-007':['인퓨전 펌프 세트','Alaris 계열 참고','infusion-pump',['인퓨전','펌프']],
+ 'SIM-PRD-008':['정량 챔버 수액세트','챔버형','infusion-gravity',['Dosifix','정량']],
+ 'SIM-PRD-009':['플러시 주사기','생리식염수 플러시형','iv-accessory',['PosiFlush']],
+ 'SIM-PRD-010':['얀카우어','구강·인두 흡인형','airway',['Yankauer','흡인']],
+ 'SIM-PRD-011':['산소포화도 센서','SpO2 센서형','monitor',['Masimo','맥박산소']],
+ 'SIM-PRD-012':['유치도뇨관','Foley형','urinary',['Bardex','Foley']],
+ 'SIM-GEN-001':['일반 수액세트','중력식','infusion-gravity',['중력식']],
+ 'SIM-GEN-002':['도지 플로우','유량조절기형','infusion-flow',['도지플로우','도지 플로우','dosi flow','유량조절기']],
+ 'SIM-GEN-003':['미세방울 수액세트','미세방울형','infusion-gravity',['미세방울']],
+ 'SIM-GEN-004':['유치도뇨관·배액백','도뇨 관리형','urinary',['배액백']],
+ 'SIM-GEN-005':['체위변경 쿠션','자세 지지형','position',['체위']],
+ 'SIM-GEN-006':['산소포화도 센서','일반형','monitor',['SpO2','센서']]
+};
+function decorateProduct(p){const spec=REPRESENTATIVES[p.id];if(!spec)throw Error('대표 용어가 없는 제품 ID: '+p.id);
+ const [displayName,variant,categoryId,aliases]=spec;
+ if(!MATERIAL_CATEGORIES.some(c=>c.id===categoryId))throw Error('제품 카테고리 오류: '+p.id);
+ return {...p,displayName,variant,categoryId,aliases:[...aliases]};
+}
+/* Visible term is intentionally not a precise product name. The legacy product ID is untouched. */
+function displayLabel(p){return p.displayName+(p.variant?' · '+p.variant:'');}
+function displaySavedProduct(fixtures,details){if(!details)return '';
+ const p=fixtures.products?.find(x=>x.id===details.productId);
+ return p?displayLabel(p):String(details.productName||'');
+}
+function categoriesFor(products){const active=new Set(products.map(p=>p.categoryId));return MATERIAL_CATEGORIES.filter(c=>active.has(c.id));}
+function productSearchTokens(product){return [product.name,product.displayName,product.variant,product.kind,...(product.aliases||[])];}
 const DRESS=['SIM-ACT-0033','SIM-ACT-0043','SIM-ACT-0052','SIM-ACT-0053','SIM-ACT-0054','SIM-ACT-0059','SIM-ACT-0063'];
 const WOUND=['SIM-ACT-0049','SIM-ACT-0050','SIM-ACT-0060'];
 const AIR=['SIM-ACT-0017','SIM-ACT-0018','SIM-ACT-0025','SIM-ACT-0026','SIM-ACT-0027','SIM-ACT-0028','SIM-ACT-0030','SIM-ACT-0031'];
@@ -51,7 +100,9 @@ function profileFor(activity){
 function expandFixtures(base){
  const codes=new Set(base.catalog.map(x=>x.code));const newCatalog=NEW_ACTIVITIES.filter(x=>!codes.has(x.code));
  const catalog=[...base.catalog,...newCatalog].map(x=>({...x,aliases:[...(x.aliases||[])]}));
- return {...base,catalog,products:PRODUCTS.map(x=>({...x})),profiles:Object.fromEntries(catalog.map(x=>[x.code,profileFor(x)]))};
+ const expanded={...base,catalog,products:PRODUCTS.map(decorateProduct),profiles:Object.fromEntries(catalog.map(x=>[x.code,profileFor(x)]))};
+ expanded.productSearchByCode=Object.fromEntries(catalog.map(x=>[x.code,productChoices(expanded,x.code).flatMap(productSearchTokens)]));
+ return expanded;
 }
 function productChoices(fixtures,code,method=''){
  const pf=fixtures.profiles?.[code];if(!pf)return [];
@@ -65,5 +116,5 @@ function productChoices(fixtures,code,method=''){
   return true;
  });
 }
-return {NEW_ACTIVITIES,PRODUCTS,expandFixtures,profileFor,productChoices};
+return {NEW_ACTIVITIES,PRODUCTS,MATERIAL_CATEGORIES,expandFixtures,profileFor,productChoices,categoriesFor,displayLabel,displaySavedProduct,productSearchTokens};
 });

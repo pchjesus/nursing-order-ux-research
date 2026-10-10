@@ -54,3 +54,8 @@
 .detail-preview{margin-top:8px}.detail-legacy{font-size:11px;color:#8a7780}
 .detail-record{margin-top:6px}
 @media(max-width:470px){.detail-grid{grid-template-columns:1fr}}
+
+/* v0.2.4: product grouping/filter controls, presentation only. */
+#detail-product-category{background:#f2f8fc;font-weight:650}
+#detail-product optgroup{font-weight:700;color:#345f76}
+#detail-product option{font-weight:400}

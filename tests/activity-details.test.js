@@ -30,7 +30,7 @@ const seed=D.makeSeed(F),original=JSON.stringify(seed);
 const details={site:'수술부위',purpose:'창상 보호',frequency:'매 근무조',method:'멸균 드레싱 관련 관리',productId:'SIM-PRD-001'};
 const created=D.createDraft(F,seed,session,'P-A101','SIM-ACT-0053','가상 사례',details);
 run('draft stores selected structured details and immutable product display snapshot',()=>{const a=created.order;
- assert.equal(a.status,'draft');assert.equal(a.details.productId,'SIM-PRD-001');assert.equal(a.details.productName,'듀오덤 DuoDERM Extra Thin');
+ assert.equal(a.status,'draft');assert.equal(a.details.productId,'SIM-PRD-001');assert.equal(a.details.productName,'듀오덤 · 얇은형');
  assert.equal(a.details.site,'수술부위');assert.equal(a.details.frequency,'매 근무조');D.validate(F,created.next);
 });
 run('original seed remains unchanged; no migration on legacy schema 2',()=>{assert.equal(JSON.stringify(seed),original);assert.equal(created.next.schema,2);assert.equal(D.STORAGE_KEY,'nursing-order-demo-v02');D.validate(F,JSON.parse(JSON.stringify(seed)));});
@@ -39,7 +39,7 @@ run('wrong product family rejected without mutating data',()=>{
 });
 run('wrong activity method rejected without mutating data',()=>{assert.throws(()=>D.createDraft(F,seed,session,'P-A101','SIM-ACT-0053','',{...details,method:'주입펌프 세트'}),/세부 조건/);assert.equal(JSON.stringify(seed),original);});
 run('invalid oversized product name rejected during restore',()=>{const n=structuredClone(created.next);n.orders.at(-1).details.productName='X'.repeat(161);assert.throws(()=>D.validate(F,n),/스냅샷/);});
-run('historical product name snapshot survives later product catalog rename',()=>{const changed=structuredClone(F);changed.products.find(p=>p.id==='SIM-PRD-001').name='미래에 변경된 표시 이름';D.validate(changed,created.next);assert.equal(created.order.details.productName,'듀오덤 DuoDERM Extra Thin');});
+run('historical product name snapshot survives later product catalog rename',()=>{const changed=structuredClone(F);changed.products.find(p=>p.id==='SIM-PRD-001').name='미래에 변경된 표시 이름';D.validate(changed,created.next);assert.equal(created.order.details.productName,'듀오덤 · 얇은형');});
 run('newly appended infusion ACT can be saved with independent generic method',()=>{
  const det={site:'수액 주입라인',purpose:'주입속도 확인',frequency:'매 근무조',method:'도지플로우(유량조절기형)',productId:'SIM-GEN-002'};
  const out=D.createDraft(F,seed,session,'P-A101','SIM-ACT-0041','',det);assert.equal(out.order.code,'SIM-ACT-0041');assert.equal(out.order.details.productId,'SIM-GEN-002');
@@ -47,7 +47,7 @@ run('newly appended infusion ACT can be saved with independent generic method',(
 run('confirmation keeps detail metadata and associated patient',()=>{const conf=D.confirmDraft(F,created.next,session,created.order.id,'2468');const o=conf.orders.find(o=>o.id===created.order.id);assert.deepEqual(o.details,created.order.details);assert.equal(o.patientId,'P-A101');});
 run('Kardex order sheet includes saved details but old records show missing',()=>{
  const rows=Sheet.buildSheet(F,created.next,'P-A101').groups.flatMap(g=>g.rows);
- const newR=rows.find(x=>x.orderId===created.order.id);assert.ok(newR.detailSummary.includes('DuoDERM'));
+ const newR=rows.find(x=>x.orderId===created.order.id);assert.ok(newR.detailSummary.includes('듀오덤'));
  assert.ok(rows.some(x=>x.detailSummary==='세부 조건 미기재'));
 });
 run('read-only grouping preserves new details and individual IDs',()=>{const groups=D.groupPatientOrders(F,created.next,'P-A101');const g=groups.find(x=>x.code==='SIM-ACT-0053');assert.ok(g.items.some(x=>x.order.details?.productId==='SIM-PRD-001'));assert.equal(g.items.length,2);});

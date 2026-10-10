@@ -31,24 +31,38 @@ function renderDetailForm(){
  if(code===lastFormCode)return;
  lastFormCode=code;
  for(const [id,items] of [['detail-site',p.sites],['detail-purpose',p.purposes],['detail-frequency',p.frequencies],['detail-method',p.methods]]){
-  el(id).innerHTML='<option value="">미지정 · 선택하지 않음</option>'+items.map(x=>`<option value="${escapeHTML(x)}">${escapeHTML(x)}</option>`).join('');
+  el(id).innerHTML='<option value="">미지정 · 선택하지 않음</option>'+items.map(x=>`<option value="${escapeHTML(x)}">${escapeHTML(x==='도지플로우(유량조절기형)'?'도지 플로우(유량조절기형)':x)}</option>`).join('');
  }
- const products=Detail.productChoices(F,code,el('detail-method').value);
- el('detail-product').innerHTML='<option value="">제품 선택 안 함</option>'+products.map(x=>`<option value="${x.id}">${escapeHTML(x.name)}${x.manufacturer?' · '+escapeHTML(x.manufacturer):' · 일반 유형'}</option>`).join('');
+ refreshProductChoices(false);
+}
+/* UI categories are presentation filters, not an order field or a new stored product ID. */
+function refreshProductChoices(preserve=true){
+ const priorProduct=preserve?el('detail-product').value:'';
+ const priorCategory=preserve?el('detail-product-category').value:'';
+ const available=Detail.productChoices(F,selectedCode,el('detail-method').value);
+ const categories=Detail.categoriesFor(available);
+ const category=categories.some(c=>c.id===priorCategory)?priorCategory:'';
+ el('detail-product-category').innerHTML='<option value="">전체 관련 카테고리</option>'+categories.map(c=>`<option value="${escapeHTML(c.id)}">${escapeHTML(c.label)}</option>`).join('');
+ el('detail-product-category').value=category;
+ const groups=categories.filter(c=>!category||c.id===category).map(c=>{
+  const products=available.filter(p=>p.categoryId===c.id);
+  return `<optgroup label="${escapeHTML(c.label)}">${products.map(p=>`<option value="${escapeHTML(p.id)}">${escapeHTML(Detail.displayLabel(p))}</option>`).join('')}</optgroup>`;
+ });
+ el('detail-product').innerHTML='<option value="">제품 선택 안 함</option>'+groups.join('');
+ if(available.some(p=>p.id===priorProduct&&(!category||p.categoryId===category)))el('detail-product').value=priorProduct;
  updateProductHelp();
 }
-function refreshProductChoices(){const old=el('detail-product').value;const products=Detail.productChoices(F,selectedCode,el('detail-method').value);
- el('detail-product').innerHTML='<option value="">제품 선택 안 함</option>'+products.map(x=>`<option value="${x.id}">${escapeHTML(x.name)}${x.manufacturer?' · '+escapeHTML(x.manufacturer):' · 일반 유형'}</option>`).join('');
- if(products.some(x=>x.id===old))el('detail-product').value=old;
- updateProductHelp();
-}
-function updateProductHelp(){const product=F.products.find(x=>x.id===el('detail-product').value);const info=el('detail-product-info');if(!product){info.textContent='참고 제품·세트는 선택 사항이며 병원 비치 여부 및 환자 적합성은 확인되지 않았습니다.';return;}
- info.textContent=`${product.kind} · ${product.verified} · 실제 적용·장비 호환성 별도 확인 필요. `;
- if(product.url){const link=document.createElement('a');link.href=product.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='제조사 자료 보기';info.appendChild(link);}
+function updateProductHelp(){const product=F.products.find(x=>x.id===el('detail-product').value);const info=el('detail-product-info');if(!product){
+ info.textContent='대표 용어로 묶은 교육용 참고 목록입니다. 제품 선택은 필수가 아니며 실제 호환성·병원 사용 여부·임상 적합성을 의미하지 않습니다.';
+ return;
+ }
+ const category=Detail.MATERIAL_CATEGORIES.find(x=>x.id===product.categoryId)?.label||'기타';
+ info.textContent=`${category} · ${product.kind} · 대표 용어(정확한 제품 모델명 아님). 선택 기록에는 원본 제품 ID를 유지합니다. 장비 호환성·실제 적용은 별도 확인 필요. `;
+ if(product.url){const link=document.createElement('a');link.href=product.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='참고 제조사 자료';info.appendChild(link);}
 }
 function selectedDetails(){return {site:el('detail-site').value,purpose:el('detail-purpose').value,frequency:el('detail-frequency').value,method:el('detail-method').value,productId:el('detail-product').value};}
 function detailHTML(details){if(!details)return '<span class="detail-legacy">과거 생성 처방 · 세부 조건 미기재</span>';
- const fields=[['부위',details.site],['목적',details.purpose],['빈도',details.frequency],['방법',details.method],['제품/기구',details.productName]];
+ const fields=[['부위',details.site],['목적',details.purpose],['빈도',details.frequency],['방법',details.method],['제품/기구',Detail.displaySavedProduct(F,details)]];
  return `<span class="order-details">${fields.filter(([,v])=>v).map(([k,v])=>`<span class="detail-pill"><b>${k}</b> ${escapeHTML(v)}</span>`).join('')||'<span class="detail-legacy">모든 세부 조건 미지정</span>'}</span>`;
 }
 function renderCatalog(){const results=D.search(F,el('query').value,el('category').value);el('result-count').textContent=results.length+'건';el('catalog-list').innerHTML=results.length?results.map(x=>`<button class="catalog-item ${x.code===selectedCode?'selected':''}" data-item="${x.code}"><strong>${escapeHTML(x.name)}</strong><small>${x.code} · ${escapeHTML(x.category)}</small></button>`).join(''):'<div class="empty">일치하는 간호활동이 없어요. 검색어나 카테고리 필터를 확인하세요.</div>';const item=F.catalog.find(x=>x.code===selectedCode);el('selected-empty').hidden=!!item;el('selected-detail').hidden=!item;if(item){el('selected-item').innerHTML=`<strong>${escapeHTML(item.name)}</strong><p class="code">${item.code}</p><p class="help">${escapeHTML(item.category)} · ${item.type}</p><p class="help">${item.validation} · 실제 nU 처방 가능 여부 미확인</p>`;renderDetailForm();}}
@@ -83,7 +97,7 @@ function init(){const cats=[...new Set(F.catalog.map(x=>x.category))];el('catego
  for(const id of ['query','category'])el(id).addEventListener(id==='query'?'input':'change',renderCatalog);
  el('clear-search').addEventListener('click',()=>{el('query').value='';el('category').value='';renderCatalog();});
  el('catalog-list').addEventListener('click',e=>{const btn=e.target.closest('[data-item]');if(!btn)return;selectedCode=btn.dataset.item;renderCatalog();});
- el('detail-product').addEventListener('change',updateProductHelp);el('detail-method').addEventListener('change',refreshProductChoices);
+ el('detail-product').addEventListener('change',updateProductHelp);el('detail-method').addEventListener('change',()=>refreshProductChoices());el('detail-product-category').addEventListener('change',()=>refreshProductChoices());
  el('save-draft').addEventListener('click',()=>guarded(()=>{logged();if(!selectedCode)throw Error('먼저 간호활동을 선택하세요.');const res=D.createDraft(F,state,session,patientId,selectedCode,el('order-note').value,selectedDetails());withChange(res,'임시저장했습니다. ' + res.order.id+' · 확정은 현재 계정 재인증이 필요합니다.');el('order-note').value='';tab='status';render();}));
  el('refresh').addEventListener('click',renderOrders);for(const id of ['status-filter','status-query'])el(id).addEventListener(id==='status-query'?'input':'change',renderOrders);el('group-by-code').addEventListener('change',renderOrders);
  el('order-list').addEventListener('click',e=>guarded(()=>{const target=e.target.closest('button');if(!target)return;if(target.dataset.view){const detail=el('details-'+target.dataset.view);detail.open=!detail.open;return;}if(target.dataset.confirm){showConfirm(target.dataset.confirm);return;}if(target.dataset.execute){logged();const res=D.addExecution(F,state,session,target.dataset.execute,'사용자가 추가한 모의 수행');withChange(res,'모의 수행 사건을 추가했습니다. 실제 수행 기록이 아닙니다.');return;}if(target.dataset.record){logged();const id=target.dataset.record;const input=el('order-list').querySelector(`[data-note-for="${id}"]`);const next=D.addRecord(F,state,session,id,input?.value);withChange(next,'연결 기록을 추가했습니다.');}}));

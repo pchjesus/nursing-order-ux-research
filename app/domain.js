@@ -45,8 +45,8 @@ function search(fixtures,q,category){const norm=s=>String(s||'').toLocaleLowerCa
  if(category&&x.category!==category)return false;
  if(!term)return true;
  const p=fixtures.profiles?.[x.code];
- const products=fixtures.products?.filter(z=>p?.families?.includes(z.family))||[];
- return [x.name,x.code,x.category,...x.aliases,...(p?.methods||[]),...products.map(z=>z.name)].some(v=>norm(v).includes(term));
+ const productTerms=fixtures.productSearchByCode?.[x.code] || (fixtures.products?.filter(z=>p?.families?.includes(z.family)).flatMap(z=>[z.name,z.displayName,z.variant,z.kind,...(z.aliases||[])])||[]);
+ return [x.name,x.code,x.category,...x.aliases,...(p?.methods||[]),...productTerms].some(v=>norm(v).includes(term));
 });}
 function cleanDetails(fixtures,code,value){
  if(value===null||value===undefined)return null; // legacy orders remain valid and unmigrated
@@ -71,7 +71,7 @@ function cleanDetails(fixtures,code,value){
  if(productId&&method==='중력식 일반세트')assert(product.family==='infusion-gravity'&&product.id!=='SIM-GEN-003','중력식 일반 방식과 세트 유형이 일치하지 않습니다.');
  if(productId&&method==='미세방울세트')assert(product.id==='SIM-GEN-003','미세방울 세트 유형과 일치하지 않습니다.');
  detail.productId=productId;
- detail.productName=product?.name||''; // immutable name snapshot for independent history
+ detail.productName=product?.displayName?(product.displayName+(product.variant?' · '+product.variant:'')):(product?.name||''); // stored representative snapshot; legacy exact snapshots remain unchanged
  detail.productKind=product?.kind||'';
  return detail;
 }

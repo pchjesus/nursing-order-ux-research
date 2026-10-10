@@ -25,6 +25,11 @@
   return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(text));
  }
  const STATUS={draft:'임시저장',confirmed:'가상 확정',held:'보류',cancelled:'취소'};
+ function displayProductDetails(fixtures,details){
+  if(!details)return '';
+  const product=fixtures.products?.find(p=>p.id===details.productId);
+  return product?.displayName?(product.displayName+(product.variant?' · '+product.variant:'')):String(details.productName||'');
+ }
  function buildSheet(fixtures,state,patientId){
   assert(fixtures&&Array.isArray(fixtures.patients)&&fixtures.patients.some(p=>p.id===patientId),'가상 환자를 찾을 수 없습니다.');
   assert(state&&Array.isArray(state.orders)&&Array.isArray(state.executions)&&Array.isArray(state.records),'가상 처방 이력을 읽을 수 없습니다.');
@@ -47,7 +52,7 @@
      confirmedLabel:o.confirmedAt?localTimestamp(o.confirmedAt):'—',
      executions:state.executions.filter(e=>e.orderId===o.id).length,
      records:state.records.filter(d=>d.orderId===o.id).length,
-     note:String(o.note||''),detailSummary:o.details?[o.details.site,o.details.purpose,o.details.frequency,o.details.method,o.details.productName].filter(Boolean).join(' · '):'세부 조건 미기재',sourceLabel:provenance,relatedRequestStatus:'외부 의사처방 연계 미구현'
+     note:String(o.note||''),detailSummary:o.details?[o.details.site,o.details.purpose,o.details.frequency,o.details.method,displayProductDetails(fixtures,o.details)].filter(Boolean).join(' · '):'세부 조건 미기재',sourceLabel:provenance,relatedRequestStatus:'외부 의사처방 연계 미구현'
    });
   }
   const result=[...groups.values()].sort((a,b)=>b.createdLabel.localeCompare(a.createdLabel,'ko')||a.authorId.localeCompare(b.authorId));
