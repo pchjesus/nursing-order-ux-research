@@ -249,3 +249,9 @@
 - 저장 `schema:2`·키 `nursing-order-demo-v02`, ACT/FOLLOW/MAT, 315 후보/ACT 42/환자 4/시드 16/제품 18 원본, 이전 처방·수행·기록/링크/audit 및 PRN/MICU 저장소 불변.
 - **중요:** 실제 병원 업무 검증 Gate 0이 우선. v0.2.6 상태 전이는 오직 합성 데이터 기능 시험이고, 현재 기관의 간호처방 변경 권한을 재현하지 않음.
 - 설계: `docs/SLOT_STATUS_v0.2.6.md`; 검사: `docs/TEST_REPORT_v0.2.6.md`.
+
+### v0.2.6 CI 회귀검사 완료 기록
+- GitHub Actions https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38051047068 — 코드 검증 커밋 `208e6d16cddae7ddce4338f76be86044eea898e6`. 실제 Node **116/116 통과**, Chromium 주입형 **7/7 통과**.
+- 초기 CI에서 기존 `scheduling_browser.py`가 화면 문구 변경(`연결 모의 수행`) 전의 문자열을 기대해 실패했음. 기존 테스트의 문자열 단언만 정정한 후 전체 통과. 본 오류는 모델/저장 데이터의 파손이 아닌 **테스트-UI 텍스트 불일치**.
+- 새 슬롯 상태 변경 테스트는 재인증, 불법 상태전이 차단, 다른 환자 참조 거부, 수행이 연결된 슬롯 변경 차단, 슬롯 원본 시각/ID 보호, 감사 이벤트와 저장 복원을 포함.
+- CI와 사용자 사용성·임상효과를 구분. 실제 병원 상태·권한 정책 검증 전까지 배포/실사용 금지.

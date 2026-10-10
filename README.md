@@ -59,6 +59,8 @@ PRN Order Viewer는 **처방 확인 교육용으로 보존**하고, 이 저장�
 - 코드 그룹은 화면 표시만 변경하며 개별 ID·부위·방법·제품·빈도·예정·이력을 보존합니다. 기존 스키마 2와 로컬 저장 키를 유지합니다.
 - 설계·한계: [v0.2.5 예정/수행/기록 계약](docs/REPEAT_SCHEDULE_v0.2.5.md). 추가 테스트: `tests/scheduling.test.js`, `tests/scheduling_browser.py`.
 
+**v0.2.6 개발자 자동검증:** GitHub Actions에서 **Node 116/116, Chromium DOM 주입형 7/7 통과**([실행 로그](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38051047068), [검증 보고](docs/TEST_REPORT_v0.2.6.md)). 실제 병원 권한/업무 규칙 및 사용자 사용성 검증은 미실시.
+
 ## v0.2.6 — 개별 예정 상태와 변경 감사 이력
 - 기존 가상 반복 예정 슬롯에 **보류·재개·취소·연기**의 선택적 모의 변경을 추가했습니다. 원래 슬롯 ID·최초 예정 시각 및 수행·기록/링크는 그대로 보존합니다.
 - 변경 사유와 로그인된 **같은 데모 계정의 PIN** 확인 후, 개별 슬롯마다 이전/새 상태 또는 시각, 가상 변경자/시간을 `audit`에 추가합니다.

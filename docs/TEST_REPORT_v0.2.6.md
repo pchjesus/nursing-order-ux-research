@@ -7,7 +7,14 @@
 - 신규: `tests/slot-status.test.js` 상태전이·PIN·환자별 격리·audit·원본 시각 보존·직렬화 및 손상 데이터 거부, `tests/slot_status_browser.py` 브라우저 상태 변경/조회 시나리오. 기존 문구·버전 기대값을 최신 UI에 맞춤.
 - 자동실행 경로: `.github/workflows/synthetic-regression.yml` 기존 전수 검사(루프에 새 파일 자동 포함).
 
-**상태:** 실제 GitHub Actions 실행/로그 확인 후 통과 건수 및 버그·미검증 사항을 기록한다. 이 시점에서는 새 검사 통과를 주장하지 않는다.
+## 실제 GitHub Actions 검증 결과
+
+- **코드 및 테스트 최종 확인 커밋:** `208e6d16cddae7ddce4338f76be86044eea898e6`.
+- [GitHub Actions 실행 38051047068](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38051047068): `unit` 성공 + `browser` 성공. 두 작업 모두 실제 완료 확인.
+- **Node 단위검사 116/116 통과:** 기존 94개(활동 상세 19, 도메인 15, 그룹 8, 처방지 17, 파일럿 8, 대표 용어 9, 예정 18)와 신규 슬롯 상태 변경 22개.
+- **Chromium DOM 주입형 브라우저 시나리오 7/7 통과:** 기존 6개 + 신규 `slot_status_browser.py` 1개. 신규 검사에는 보류/재개/연기/취소, PIN 오류/정상 처리, 원본 시각 및 audit, 환자별 분리, 가상 저장·복원, 미처리 JS 오류 0개 확인 포함.
+- 첫 Actions 검사 `38050949446`에서 단위검사는 통과했지만 기존 일정 브라우저 검사의 문구 기대값이 변경된 UI 문구(`연결 모의 수행`)와 달라 실패. `tests/scheduling_browser.py`의 단언만 최신 문구로 정정. 최종 재실행에서 7개 모두 통과. **기존 데이터 손상이나 앱 도메인 버그가 재현된 것은 아님.**
+- GitHub Actions는 헤드리스 Chromium과 **메모리 대체 localStorage**를 사용함. 실제 사용자 PC의 디스크 지속성/모바일 작동이나 사용성 및 임상적 안전성을 입증하는 검사는 아님.
 
 ## 보존 기준
 - `data/CATALOG.*`, `app/fixtures.js`, `app/activity-details.js`, `app/case-context.js`, `research/` 파일 변경 없음.
