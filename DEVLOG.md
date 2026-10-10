@@ -84,3 +84,28 @@
 - 근무표 읽기 전용 JSON 교환 계약과 매핑/노후화 검증을 우선 설계.
 - 환자 화재대피 데이터는 간호기록 전체를 공유하지 않고 안전상 필요한 별도 승인된 최소 정보만 고려.
 - 사용자는 기능형 MVP 기틀이 더 잡힌 뒤 직접 테스트 예정.
+
+## 2026-10-10 — PRN v0.3 × 간호처방 v0.2.1 × MICU v0.7.4 통합 대비 설계 (문서 전용)
+
+### Confirmed facts / reference review
+- PRN 통합 문서 `docs/THREE-PROJECT-CONVERGENCE-v0.3.md`와 `order-composer.js`, 가상 환자 목록, 근무표 브리지 확인.
+- 간호처방 `app/domain.js`, `app/fixtures.js`, `app/app.js`의 개별 주문·수행·기록·재인증·선택 그룹화 및 localStorage 스키마 2 구조 재확인.
+- MICU 근무표, 인력 식별 및 IndexedDB v4 원본 저장 구조 확인. 두 앱의 현재 직원/환자 ID가 직접 공유되지 않음.
+- 사용자 제공 `icn 워크리스트.pdf` 12쪽과 `2026사례기반 실무실습 사례자료.pdf` 17쪽의 술기·Kardex·Order Manage 표 구성/시간별 처방지 정보를 구조적으로 검토.
+
+### Documents created/updated
+- `design/THREE_PROJECT_CONVERGENCE_IMPACT.md`: 도메인 경계, 현재 구조·변경 영향·위험·최소 이행 경로.
+- `design/SHARED_IDENTITY_LINK_DRAFT.md`: 환자·직원 crosswalk와 간호처방 ↔ 외부 의사 주문의 선택적 연결 계약 초안.
+- `research/PRACTICUM_REFERENCE_MAPPING.md`: 제공된 실습자료의 페이지별 구성·출처 제한·합성 시나리오 설계 기준.
+- `README.md`, `design/OPEN_DECISIONS.md`, `design/ROADMAP.md`: 방향 및 후속 결정·검증 게이트 동기화.
+
+### Deliberately unchanged / verification limit
+- **코드/기능/기존 UI/도메인 모델·원본 합성 후보 315개/로컬 DB 스키마·저장소 키·검증 스크립트는 변경하지 않음.**
+- PRN·MICU 타 저장소는 변경하지 않음; 공통 DB·저장소 병합·마이그레이션/환자 매핑·실습자료 원본 업로드 없음.
+- **이번은 문서 수정만이므로 앱 기능/브라우저 자동검사를 재실행했다고 주장하지 않음.** 문서상 참조·미확정 표시 및 GitHub 원격 변경 범위만 검증.
+- 실제 nU 처방권한·간호기록 규칙·임상 적절성 미확인. 학교 자료는 유사한 교육용 처방지로만 취급.
+
+### Next
+- 사용자 승인 후 읽기 전용 **합성 ID 매핑/연관 주문 데이터 계약 샘플**과 반례 시험을 먼저 검토.
+- 학교 자료 형식을 참고한 *새 합성* Kardex/Order Manage 시나리오 데이터 설계(원본 정보 전재 금지).
+- 앱 구현·저장 마이그레이션은 사용자 별도 결정까지 보류.
