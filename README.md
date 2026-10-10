@@ -29,7 +29,7 @@
 
 **구조:** `app/fixtures.js` 합성 데이터, `app/domain.js` 데이터·권한 시뮬레이션 및 상태 전이, `app/app.js` 교체 가능한 UI 이벤트, `app/styles.css` 스타일. 따라서 후속 UI 개편이 가능하도록 도메인 동작을 화면에서 분리했습니다.
 
-**검증:** `node tests/domain.test.js` 15개 통과. Playwright 브라우저 조작 시나리오 1개 통과(테스트 환경 정책상 HTML/CSS/JS를 별도 문서에 삽입하는 방식). [상세 테스트 보고](docs/TEST_REPORT.md) · [ACT 38개 선정 목록](docs/SELECTION.md).
+**검증(v0.2.5):** GitHub Actions에서 Node 단위검사 **86/86**, Chromium DOM 주입형 시나리오 **6/6** 통과. 이 검사는 합성 데이터와 메모리 대체 저장소 기반 개발자 검사이며 실제 사용자 PC 영속성·사용성·임상 적합성 검증이 아닙니다. [v0.2.5 테스트 보고](docs/TEST_REPORT_v0.2.5.md) · [GitHub Actions 실행](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38031140909) · [초기 선정 목록](docs/SELECTION.md).
 
 ## v0.2.5 — 예정·수행·기록 분리 (합성 시뮬레이터)
 - **새 가상 처방**은 선택적으로 일회성·주기 반복(첫 시각/간격/횟수)·조건부 예정 정보를 저장합니다. 선택하지 않으면 예정 횟수는 미지정입니다.
