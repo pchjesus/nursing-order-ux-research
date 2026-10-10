@@ -20,6 +20,8 @@ jobs:
             echo "Running $f"
             node "$f"
           done
+      - name: Print and validate isolated pilot CLI output
+        run: node research/pilot-case-model.cjs
   browser:
     runs-on: ubuntu-latest
     steps:

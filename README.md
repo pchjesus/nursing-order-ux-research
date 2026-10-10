@@ -17,7 +17,8 @@ PRN Order Viewer는 **처방 확인 교육용으로 보존**하고, 이 저장�
 
 - 기존 v0.2.5 앱 화면·환자/처방 데이터·`localStorage` 저장키·업무 규칙은 변경하지 않았다.
 - 신규 `research/pilot-case-model.cjs`: 기존 합성 ACT 코드로 **유사 항목 검색 / 같은 코드의 2개 개별 처방 / 예정 3회·모의 수행 1건·기록 0건 / 환자 분리** 사례를 읽기 전용 메모리에 생성·검증.
-- 신규 `tests/pilot-case-model.test.js`: 실제 Node 회귀검증에 자동 포함. 기존 기능 테스트와 함께 CI 결과를 확인한다.
+- 신규 `tests/pilot-case-model.test.js`: 실제 Node 회귀검증에 자동 포함. **최초 GitHub Actions 38037057746에서 94/94 Node 검사(신규 8개 포함), 기존 Chromium 6개 시나리오 성공을 확인했다.** 이후 CLI 출력도 CI에서 실행하도록 보완했다.
+- 실행·검증 결과: [파일럿 검증 보고](research/PILOT-TEST-REPORT-v0.1.md).
 - 사용자/현직자 평가 전 지침: [파일럿 설계·실행 절차](research/USABILITY-PILOT-v0.1.md), [비식별 관찰기록 양식](research/OBSERVATION-TEMPLATE-v0.1.md).
 - **A 검색만 현행 웹 UI에서 바로 수행 가능**. B/C/D는 별도 모델·정적 사례로 검토하며, 웹앱 평가 모드나 실제 병원 업무 검증을 구현한 것이 아니다.
 - 현장 기능 중복·업무 권한·사용성 근거를 확보하기 전까지 새 간호처방 UI와 실제 의료데이터 연동은 보류.

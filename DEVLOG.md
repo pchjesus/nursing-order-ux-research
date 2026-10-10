@@ -1,5 +1,12 @@
 # 개발 및 조사 일지
 
+## 2026-10-10 — 가상 파일럿 첫 원격 자동검증 결과
+
+- GitHub Actions [38037057746](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38037057746): unit/browser success.
+- 실제 Node.js 로그 94건 통과(기존 86+신규 8), 기존 Chromium DOM 주입형 6개 시나리오 모두 성공.
+- CLI `node research/pilot-case-model.cjs`의 JSON 출력 확인을 위해 CI에 별도 step 추가; 이 단계는 수정 커밋의 새 Actions 실행 성공 여부를 별도 확인해야 함.
+- 결과 문서: `research/PILOT-TEST-REPORT-v0.1.md`. 현직자 인터뷰/사용성 평가 실제 수행 결과는 없음.
+
 ## 2026-10-10 — 간호처방 파일럿 v0.1 설계·준비 (합성 평가 도구)
 
 - **신규 개발 우선순위 확정:** PRN은 처방 확인 교육용으로 유지. 간호처방 UX는 실제 병원 기존 기능과 남은 문제를 확인하기 전 과잉 개발하지 않음.
