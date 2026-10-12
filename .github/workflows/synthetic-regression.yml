@@ -44,3 +44,11 @@ jobs:
             echo "Running $f"
             python "$f"
           done
+      - name: Save optional pilot viewer screenshot
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nursing-pilot-review-v0.2.7
+          path: docs/ui-pilot-v0.2.7.png
+          if-no-files-found: ignore
+          retention-days: 30
