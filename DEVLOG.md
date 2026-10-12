@@ -264,3 +264,8 @@
 - Node 신규 12건 + Chromium 브라우저 신규 1시나리오(파일 직접 열기, 저장소 접근 차단 상태 재로드, 원본 ID·환자 분리, 미처리 JS 오류) 준비.
 - `app/`, `data/`, 기존 파일럿 CLI·인증·저장·처방 이벤트 코드, PRN/MICU 저장소 **변경하지 않음**. 실제 사용자 응답 수집·UX 성능 측정·병원 기능 조사 없음.
 - 진행 상황 및 원격 검사: `docs/TEST_REPORT_v0.2.7.md`에 최신 검증 결과만 별도 기록.
+
+### v0.2.7 원격 검증 성공
+- 코드 커밋 `0d0db5f400d4dbbb4a666204b54818dc8ec1d481`의 GitHub Actions [38189479202](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38189479202): Node **128/128**, Chromium **8/8** 통과.
+- 독립 읽기 전용 뷰어를 Chromium `file://`로 실제 열어 테스트. `localStorage` 접근 자체를 예외로 차단해도 화면 재로드 정상, 그룹화 시 개별 ID 보존, 환자별 분리·예정/수행/기록 3/1/0 표시 확인. 새 실행 오류 발견 없음.
+- 브라우저 스크린샷은 Actions artifact `nursing-pilot-review-v0.2.7`에 저장. **메인 앱 v0.2.6을 개편하거나 실제 사용성 평가를 실시하지 않았다.**

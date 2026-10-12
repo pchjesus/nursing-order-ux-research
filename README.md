@@ -10,6 +10,7 @@
 - 브라우저 뷰어는 기존 `research/pilot-case-model.cjs`의 같은 합성 state를 사용하도록 검증하며 실제 `nursing-order-demo-v02` 저장값을 읽거나 수정하지 않습니다. 사용자 답변·시간·클릭 기록을 수집하지 않습니다.
 - 별도 연구 화면이지 기존 앱의 새로운 처방 기능이나 유효성 검증된 UX 대안이 아닙니다. 임상적 필요성 및 nU 현황 확인(Gate 0)은 계속 우선입니다.
 - [v0.2.7 설계·사용법](docs/PILOT_VIEWER_v0.2.7.md) · [검사 보고](docs/TEST_REPORT_v0.2.7.md).
+- **원격 개발자 검사:** Node 128/128, Chromium 8/8 통과([Actions 로그](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38189479202)). Chromium 실제 파일 열기 캡처는 실행 artifact에 보관. 실제 사용자/임상 검증은 미실시.
 
 ## 2026-10-10 전방위 타당성 재검토 (검토안 · 기능 변경 없음)
 
