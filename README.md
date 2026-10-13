@@ -2,6 +2,15 @@
 
 > **상태:** 합성 데이터 기반 **기능형 MVP v0.2.6 구현** / 임상 검증 전. **실제 간호정보시스템·CMC nU 아님**.
 
+## 시작 화면 (Codespaces · 로컬 정적 서버)
+
+저장소 최상위 `index.html`을 **시작 화면**으로 추가했습니다. 저장소 루트에서 `python -m http.server 8000` 등 정적 서버를 실행하고 포트 주소의 `/`로 접속하면, 더 이상 폴더 목록 대신 두 프로그램의 선택 화면이 표시됩니다.
+
+- **간호처방 시뮬레이터 v0.2.6:** [`app/index.html`](app/index.html) — 기존 가상 처방·수행·기록 기능.
+- **읽기 전용 합성 사례 평가 뷰어 v0.2.7:** [`research/pilot-viewer.html`](research/pilot-viewer.html) — 별도 연구용 가상 사례 탐색.
+- 별도 서버 설정 변경이나 외부 라이브러리 없이 **상대경로 링크**를 사용합니다. 시작 화면은 스크립트·저장 기능이 없으며 `app/`·`data/` 및 기존 저장 스키마 2/키 `nursing-order-demo-v02`를 변경하지 않습니다.
+- Codespaces에서 여전히 디렉터리 목록이 보인다면 브라우저 새로고침 후 주소 끝을 `/index.html`로 열고, 실제 서버가 저장소 루트를 제공하는지 확인하세요. 기존 주소에서 `/app/index.html`과 `/research/pilot-viewer.html`도 직접 접근할 수 있습니다.
+
 ## v0.2.7 — 연구용 읽기 전용 합성 사례 뷰어 (2026-10-12)
 
 **새 화면:** [research/pilot-viewer.html](research/pilot-viewer.html) · **기존 업무 시뮬레이터는 계속 v0.2.6** ([app/index.html](app/index.html)).

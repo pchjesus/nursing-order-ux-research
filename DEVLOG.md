@@ -269,3 +269,12 @@
 - 코드 커밋 `0d0db5f400d4dbbb4a666204b54818dc8ec1d481`의 GitHub Actions [38189479202](https://github.com/pchjesus/nursing-order-ux-research/actions/runs/38189479202): Node **128/128**, Chromium **8/8** 통과.
 - 독립 읽기 전용 뷰어를 Chromium `file://`로 실제 열어 테스트. `localStorage` 접근 자체를 예외로 차단해도 화면 재로드 정상, 그룹화 시 개별 ID 보존, 환자별 분리·예정/수행/기록 3/1/0 표시 확인. 새 실행 오류 발견 없음.
 - 브라우저 스크린샷은 Actions artifact `nursing-pilot-review-v0.2.7`에 저장. **메인 앱 v0.2.6을 개편하거나 실제 사용성 평가를 실시하지 않았다.**
+
+## 2026-10-13 — 저장소 루트 시작 화면 추가 (사용자 요청)
+
+- 실제 `main`의 저장소 최상위에 `index.html`이 없는 것을 확인. Codespaces 정적 서버에서 루트 `/` 접속 시 폴더 목록이 나오는 직접 원인.
+- 독립형 정적 `index.html`(내장 CSS·상대경로 링크 2개) 추가. 기존 시뮬레이터 `app/index.html` 및 연구용 `research/pilot-viewer.html` 경로 유지, 화면을 한 프로그램으로 병합하지 않음.
+- `tests/landing_browser.py`에서 Chromium의 `file://` 및 로컬 HTTP 루트 응답, 두 목적지 이동, 브라우저 저장값 불변, JS 오류 점검. 기존 Node·브라우저 회귀 자동검사는 계속 실행.
+- 기존 `app/`, `data/`, `research/` 및 합성 환자·처방·수행·기록·제품/기구 원본, 저장 스키마 2와 키는 변경하지 않음. PRN/MICU 저장소 변경 없음.
+- 이 작업은 접근 경로 개선이며 간호처방 임상 기능 추가나 병원 UI 재현·사용성 검증이 아님.
+- 최종 GitHub Actions 검사 결과는 해당 실행 로그를 기준으로만 보고.

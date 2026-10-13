@@ -52,3 +52,12 @@ jobs:
           path: docs/ui-pilot-v0.2.7.png
           if-no-files-found: ignore
           retention-days: 30
+
+      - name: Save root start-page screenshot
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nursing-order-start-page
+          path: docs/ui-root-landing.png
+          if-no-files-found: ignore
+          retention-days: 30
