@@ -11,3 +11,7 @@ Preserve synthetic order and patient isolation, readonly pilot and existing brow
 
 ## Scope
 This registration is documentation/policy-only; it does not authorize behavior, data, deployment or visibility changes. Do not claim REAL-device or specialist acceptance from automated CI alone.
+
+## Visual Design/UI/UX reference — 2026-10-15
+
+Before designing or revising UI, navigation, information hierarchy, search/forms, status feedback, readability or accessibility, **read** [Universal Visual Design & UI/UX Guidelines v1.1](docs/Universal_Visual_Design_UI_UX_Guidelines_v1.1.md) and [nursing-order-specific adoption rules](docs/UX_GUIDELINE_ADOPTION_v1.1.md) alongside the approved B+ development/CI policy. The universal guideline is **DRAFT reference guidance**, not approval to alter existing features, clinical claims, data identities, patient separation, storage schema or original pilot behavior. Current domain/safety and approved project-level UX contracts take precedence. Before UI changes, identify L/M/H risk, state/persistence impacts, and relevant tests; record only actually observed passes.
